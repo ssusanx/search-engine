@@ -6,6 +6,23 @@ bin-release/
 # Other files and folders
 .settings/
 
+/build/*
+*/build/*
+/bin/
+.classpath
+.project
+.DS_Store
+.gradle
+.settings
+.idea
+*.iml
+asis_temp
+
+# Ignore testing dependencies
+node_modules
+/build/
+
+
 # Project files, i.e. `.project`, `.actionScriptProperties` and `.flexProperties`
 # should NOT be excluded as they contain compiler settings and other important
 # information for Eclipse / Flash Builder.
