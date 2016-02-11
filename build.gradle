@@ -29,8 +29,12 @@ dependencies {
 
 jar {
 	
+	exclude "META-INF/*.RSA"
+	exclude "META-INF/*.SF"
+    exclude "META-INF/*.DSA"
+	
 	manifest {
-		attributes( 'Main-Class': 'org.search.crawl.Crawler' )
+		attributes( 'Main-Class': 'org.search.crawl.Application' )
 	}
   
 	from configurations.compile.collect { entry -> zipTree(entry) }
