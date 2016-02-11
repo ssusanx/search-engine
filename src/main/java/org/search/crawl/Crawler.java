@@ -1,74 +1,44 @@
 package org.search.crawl;
 
-import java.io.IOException;
+import java.util.Set;
+import java.util.regex.Pattern;
 
-import org.apache.commons.cli.*;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.select.Elements;
+import edu.uci.ics.crawler4j.crawler.Page;
+import edu.uci.ics.crawler4j.crawler.WebCrawler;
+import edu.uci.ics.crawler4j.parser.HtmlParseData;
+import edu.uci.ics.crawler4j.url.WebURL;
 
-public class Crawler {
+public class Crawler extends WebCrawler{
+	
+	private final static Pattern FILTERS = Pattern.compile(".*(\\.(css|js|gif|jpg"
+            + "|png|mp3|mp3|zip|gz))$");
+	
+	@Override
+    public boolean shouldVisit(Page referringPage, WebURL url) {
+        String href = url.getURL().toLowerCase();
+        return !FILTERS.matcher(href).matches()
+               && href.startsWith("http://www.ics.uci.edu/");
+    }
 
-    public static void main(String[] args) throws IOException
-    {
-        int depth;
-        String url;
-        boolean extraction;
+    /**
+     * This function is called when a page is fetched and ready
+     * to be processed by your program.
+     */
+    @Override
+    public void visit(Page page) {
+        String url = page.getWebURL().getURL();
+        System.out.println("URL: " + url);
 
-        // Get Arguments
-        Options options = setOptions();
-        // Parse Arguments
-        CommandLine cmd = parseArg(options, args);
+        if (page.getParseData() instanceof HtmlParseData) {
+            HtmlParseData htmlParseData = (HtmlParseData) page.getParseData();
+            String text = htmlParseData.getText();
+            String html = htmlParseData.getHtml();
+            Set<WebURL> links = htmlParseData.getOutgoingUrls();
 
-        // Check if Depth and Url were passed as arguments
-        // Exit if arguments are not passed
-        if (!cmd.hasOption("d") || !cmd.hasOption("u")) {
-            System.out.println("Arguments needed Url and Depth");
-            return;
+            System.out.println("Text length: " + text.length());
+            System.out.println("Html length: " + html.length());
+            System.out.println("Number of outgoing links: " + links.size());
         }
+   }
 
-        // Set Values from the parameters
-        depth = Integer.parseInt(cmd.getOptionValue("d"));
-        url = cmd.getOptionValue("u");
-        extraction = cmd.hasOption("e");
-
-        System.out.printf("Depth:%d, Url:%s, extraction:%b \n", depth, url, extraction);
-        /*----------------------------------------------------------------------------------------------------------*/
-
-        System.out.println("Crawler started");
-    	//String url = "http://en.wikipedia.org/";
-    	downloadPage(url);
-    }
-
-    private static void downloadPage(String url) throws IOException
-    {
-    	Document doc = Jsoup.connect("http://en.wikipedia.org/").get();
-    	Elements newsHeadlines = doc.select("#mp-itn b a");
-    	
-    	System.out.println(newsHeadlines.toString());
-    }
-
-    public static Options setOptions() {
-        Options options = new Options();
-
-        options.addOption("d", true, "Depth");
-        options.addOption("u", true, "Url");
-        options.addOption("e", false, "extraction mode");
-
-        return options;
-    }
-
-    public static CommandLine parseArg(Options options, String[] args) {
-        CommandLineParser parser = new DefaultParser();
-        CommandLine cmd = null;
-
-        try {
-            cmd = parser.parse(options, args);
-        } catch (ParseException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-        return cmd;
-    }
 }
