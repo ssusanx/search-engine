@@ -1,47 +1,21 @@
-apply plugin: 'java'
-apply plugin: 'eclipse'
-apply plugin: 'application'
+group 'org.search'
 
-group ="org.search"
-version = '1.0.0'
+
+apply plugin: 'java'
 
 sourceCompatibility = 1.8
-targetCompatibility = 1.8
 
-task wrapper(type: Wrapper) {
-	gradleVersion = '2.3'
+version = '1.0.0'
+
+ext {
+
+    buildDate = new Date().format('dd-MM-yyyy HH:mm:ss')
 }
 
-mainClassName = 'org.search.crawl.Crawler'
-
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 dependencies {
-	
-	compile "org.jsoup:jsoup:1.8.1"
-    compile "commons-cli:commons-cli:1.3.1"
-	compile "edu.uci.ics:crawler4j:4.2"
-    compile 'org.slf4j:slf4j-jdk14:1.7.15'
-	
-    testCompile group: 'junit', name: 'junit', version: '4.+'
+    testCompile group: 'junit', name: 'junit', version: '4.11'
 }
-
-jar {
-	
-	exclude "META-INF/*.RSA"
-	exclude "META-INF/*.SF"
-    exclude "META-INF/*.DSA"
-	
-	manifest {
-		attributes( 'Main-Class': 'org.search.crawl.Application' )
-	}
-  
-	from configurations.compile.collect { entry -> zipTree(entry) }
-}
-
-test {
-    systemProperties 'property': 'value'
-}
-

@@ -2,11 +2,6 @@ package org.search.crawl;
 
 import java.io.IOException;
 
-import edu.uci.ics.crawler4j.crawler.CrawlConfig;
-import edu.uci.ics.crawler4j.crawler.CrawlController;
-import edu.uci.ics.crawler4j.fetcher.PageFetcher;
-import edu.uci.ics.crawler4j.robotstxt.RobotstxtConfig;
-import edu.uci.ics.crawler4j.robotstxt.RobotstxtServer;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -16,6 +11,9 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
+import edu.uci.ics.crawler4j.crawler.Page;
+import edu.uci.ics.crawler4j.url.WebURL;
+
 public class Application {
 
     public static void main(String[] args) throws IOException
@@ -23,6 +21,8 @@ public class Application {
         int depth;
         String url;
         boolean extraction;
+        
+        Crawler crawler = new Crawler();
 
         // Get Arguments
         Options options = setOptions();
@@ -43,52 +43,12 @@ public class Application {
 
         System.out.printf("Depth:%d, Url:%s, extraction:%b \n", depth, url, extraction);
 
-        crawlSites(depth, url);
-
         System.out.println("Crawler started");
         
     	downloadPage(url);
-    }
-
-    private static void crawlSites(int depth, String url){
-        String crawlStorageFolder = "C:\\Users\\jwj96\\Documents\\Classes\\storage";
-
-        int numberOfCrawlers = 1;
-
-        CrawlConfig config = new CrawlConfig();
-        config.setCrawlStorageFolder(crawlStorageFolder);
-        config.setMaxDepthOfCrawling(depth);
-        config.setMaxPagesToFetch(200);
-        // config.setResumableCrawling(true);
-
-        /*
-         * Instantiate the controller for this crawl.
-         */
-        PageFetcher pageFetcher = new PageFetcher(config);
-        RobotstxtConfig robotstxtConfig = new RobotstxtConfig();
-        RobotstxtServer robotstxtServer = new RobotstxtServer(robotstxtConfig, pageFetcher);
-        CrawlController controller = null;
-        try {
-            controller = new CrawlController(config, pageFetcher, robotstxtServer);
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("Errot creating Crawler");
-        }
-
-        /*
-         * For each crawl, you need to add some seed urls. These are the first
-         * URLs that are fetched and then the crawler starts following links
-         * which are found in these pages
-         */
-        controller.addSeed(url);
-
-        /*
-         * Start the crawl. This is a blocking operation, meaning that your code
-         * will reach the line after this only when crawling is finished.
-         */
-        controller.start(Crawler.class, numberOfCrawlers);
-        controller.shutdown();
-        controller.waitUntilFinish();
+    	WebURL webUrl = new WebURL();
+    	webUrl.setURL(url);
+    	crawler.visit(new Page(webUrl));
     }
 
     private static void downloadPage(String url) throws IOException
@@ -99,7 +59,7 @@ public class Application {
     	System.out.println(newsHeadlines.toString());
     }
 
-    private static Options setOptions() {
+    public static Options setOptions() {
         Options options = new Options();
 
         options.addOption("d", true, "Depth");
@@ -109,7 +69,7 @@ public class Application {
         return options;
     }
 
-    private static CommandLine parseArg(Options options, String[] args) {
+    public static CommandLine parseArg(Options options, String[] args) {
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
 
