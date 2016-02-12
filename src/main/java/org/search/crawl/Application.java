@@ -43,7 +43,14 @@ public class Application {
 
         System.out.printf("Depth:%d, Url:%s, extraction:%b \n", depth, url, extraction);
 
-        //-------------------------------------------------------------------------------------------------------------
+        crawlSites(depth, url);
+
+        System.out.println("Crawler started");
+        
+    	downloadPage(url);
+    }
+
+    private static void crawlSites(int depth, String url){
         String crawlStorageFolder = "C:\\Users\\jwj96\\Documents\\Classes\\storage";
 
         int numberOfCrawlers = 1;
@@ -82,11 +89,6 @@ public class Application {
         controller.start(Crawler.class, numberOfCrawlers);
         controller.shutdown();
         controller.waitUntilFinish();
-        //-------------------------------------------------------------------------------------------------------------
-
-        System.out.println("Crawler started");
-        
-    	downloadPage(url);
     }
 
     private static void downloadPage(String url) throws IOException
