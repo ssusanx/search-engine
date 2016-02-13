@@ -2,6 +2,8 @@ package org.data.retrieval;
 
 import org.bson.Document;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -17,12 +19,15 @@ public class Application {
     	
 		database = mongoClient.getDatabase("local");
 		collection = database.getCollection("test");
+		
+		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
         System.out.println("data dump started");
         MongoCursor<Document> cursor = collection.find().iterator();
         try {
             while (cursor.hasNext()) {
-                System.out.println(cursor.next().toJson());
+            	//String json = gson.toJson(obj);
+                System.out.println(gson.toJson(cursor.next()));
             }
         } finally {
             cursor.close();
