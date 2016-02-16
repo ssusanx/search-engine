@@ -3,6 +3,7 @@ package org.search.crawl;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -112,16 +113,20 @@ public class Crawler extends WebCrawler{
             collection.insertOne(obj);
 
             rawHTML(url, text);
-                        
+
         }
 		
 	}
 
     private void rawHTML(String url, String text) {
+        // Remove special characters that windows and OSX don't allow in file names
         url = url.replaceAll("[\\/:*?\"<>|.]*", "");
-        System.out.println("New URL: " + url.toLowerCase());
-        File file = new File(url.toLowerCase()+".txt");
+        //System.out.println("New URL: " + url.toLowerCase());
 
+        createHtmlDirectory();
+
+        File file = new File("html/" + url.toLowerCase()+".txt");
+        
         if(file.exists()){
             // Maybe change it to check when the file was last updated and update file if older than n days.
             System.out.println("File exist");
@@ -138,5 +143,13 @@ public class Crawler extends WebCrawler{
             System.out.println("path: " + file.getAbsolutePath());
         }
     }
-	
+
+    private void createHtmlDirectory(){
+        File dir = new File("html");
+        if(!dir.exists()){
+            System.out.println("Creating directory: " + dir.getAbsolutePath());
+            dir.mkdir();
+        }
+    }
+
 }
