@@ -100,7 +100,9 @@ public class Crawler extends WebCrawler{
             for (WebURL link : links) {
             	list.add(link.getURL());
             }
-            
+
+            String path = rawHTML(url, text);
+            System.out.println("Path: " + path);
             Document obj = new Document();
             obj.append("url", url);
             obj.append("hash", url.toLowerCase().hashCode());
@@ -109,16 +111,13 @@ public class Crawler extends WebCrawler{
             obj.append("content-type", metatags.get("content-type"));
             obj.append("text", text);
             obj.append("links", list);
-            
+            obj.append("path", path);
             collection.insertOne(obj);
 
-            rawHTML(url, text);
-
         }
-		
 	}
 
-    private void rawHTML(String url, String text) {
+    private String rawHTML(String url, String text) {
         // Remove special characters that windows and OSX don't allow in file names
         url = url.replaceAll("[\\/:*?\"<>|.]*", "");
         //System.out.println("New URL: " + url.toLowerCase());
@@ -126,7 +125,7 @@ public class Crawler extends WebCrawler{
         createHtmlDirectory();
 
         File file = new File("html/" + url.toLowerCase()+".txt");
-        
+
         if(file.exists()){
             // Maybe change it to check when the file was last updated and update file if older than n days.
             System.out.println("File exist");
@@ -142,6 +141,8 @@ public class Crawler extends WebCrawler{
             System.out.println("exist: " + file.exists());
             System.out.println("path: " + file.getAbsolutePath());
         }
+
+        return file.getAbsolutePath();
     }
 
     private void createHtmlDirectory(){
