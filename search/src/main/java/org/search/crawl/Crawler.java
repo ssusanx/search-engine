@@ -1,5 +1,8 @@
 package org.search.crawl;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,7 +26,8 @@ public class Crawler extends WebCrawler{
 	MongoClient mongoClient = null;
 	MongoCollection<Document> collection = null;
 	MongoDatabase database = null;
-	
+	boolean test = true
+            ;
 	private final static Pattern FILTERS = Pattern.compile(".*(\\.(css|js|gif|jpg"
             + "|png|mp3|mp3|zip|gz))$");
 	
@@ -88,7 +92,7 @@ public class Crawler extends WebCrawler{
             Map<String, String> metatags = htmlParseData.getMetaTags();
             
             String text = htmlParseData.getText();
-            
+
             String html = htmlParseData.getHtml();
             Set<WebURL> links = htmlParseData.getOutgoingUrls();
             List<String> list = new ArrayList<String>();
@@ -106,9 +110,33 @@ public class Crawler extends WebCrawler{
             obj.append("links", list);
             
             collection.insertOne(obj);
-            
+
+            rawHTML(url, text);
+                        
         }
 		
 	}
+
+    private void rawHTML(String url, String text) {
+        url = url.replaceAll("[\\/:*?\"<>|.]*", "");
+        System.out.println("New URL: " + url.toLowerCase());
+        File file = new File(url.toLowerCase()+".txt");
+
+        if(file.exists()){
+            // Maybe change it to check when the file was last updated and update file if older than n days.
+            System.out.println("File exist");
+        }
+
+        try{
+            PrintWriter out = new PrintWriter(file);
+            out.print(text);
+            out.close();
+        } catch (FileNotFoundException e) {
+            System.out.println("Error Writing to file");
+            System.out.println("can write: " + file.canWrite());
+            System.out.println("exist: " + file.exists());
+            System.out.println("path: " + file.getAbsolutePath());
+        }
+    }
 	
 }
