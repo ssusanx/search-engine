@@ -128,6 +128,7 @@ public class Crawler extends WebCrawler{
             obj.append("path", path);
             collection.insertOne(obj);
 
+            // Save images from url
             getMediaFromUrl(url);
         }
 	}
@@ -203,7 +204,7 @@ public class Crawler extends WebCrawler{
             //getting metadata of the document
             System.out.println("Metadata of the PDF:");
             String[] metadataNames = metadata.names();
-            
+
             for(String name : metadataNames) {
                 System.out.println(name+ " : " + metadata.get(name));
             }
