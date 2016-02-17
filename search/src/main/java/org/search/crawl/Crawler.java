@@ -1,8 +1,8 @@
 package org.search.crawl;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
+import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,6 +21,9 @@ import edu.uci.ics.crawler4j.crawler.Page;
 import edu.uci.ics.crawler4j.crawler.WebCrawler;
 import edu.uci.ics.crawler4j.parser.HtmlParseData;
 import edu.uci.ics.crawler4j.url.WebURL;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 public class Crawler extends WebCrawler{
 	HashMap<Integer, String> visitedSite = new HashMap<>();
@@ -103,6 +106,7 @@ public class Crawler extends WebCrawler{
 
             String path = rawHTML(url, text);
             System.out.println("Path: " + path);
+
             Document obj = new Document();
             obj.append("url", url);
             obj.append("hash", url.toLowerCase().hashCode());
@@ -114,15 +118,66 @@ public class Crawler extends WebCrawler{
             obj.append("path", path);
             collection.insertOne(obj);
 
+            getMediaFromUrl(url);
         }
 	}
+
+    private void getMediaFromUrl(String url) {
+        org.jsoup.nodes.Document doc = null;
+        Elements media = null;
+        try {
+            doc = Jsoup.connect(url).get();
+            media = doc.select("[src]");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        for (Element src : media) {
+            if (src.tagName().contains("img")) {
+                saveImage(src.attr("abs:src"));
+            }
+        }
+    }
+
+    private void saveImage(String imageUrl){
+        URL url = null;
+        InputStream in;
+        OutputStream out;
+
+        createDirectory("images");
+
+        String ext = imageUrl.substring(imageUrl.lastIndexOf('.'));
+        String fileName = imageUrl.substring(imageUrl.lastIndexOf("/"));
+        try {
+            url = new URL(imageUrl);
+            in = url.openStream();
+            out = new FileOutputStream("images" + fileName);
+
+
+            byte[] b = new byte[2048];
+            int length;
+
+            while ((length = in.read(b)) != -1) {
+                out.write(b, 0, length);
+            }
+
+
+            in.close();
+            out.close();
+
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     private String rawHTML(String url, String text) {
         // Remove special characters that windows and OSX don't allow in file names
         url = url.replaceAll("[\\/:*?\"<>|.]*", "");
         //System.out.println("New URL: " + url.toLowerCase());
 
-        createHtmlDirectory();
+        createDirectory("html");
 
         File file = new File("html/" + url.toLowerCase()+".txt");
 
@@ -145,8 +200,8 @@ public class Crawler extends WebCrawler{
         return file.getAbsolutePath();
     }
 
-    private void createHtmlDirectory(){
-        File dir = new File("html");
+    private void createDirectory(String dirName){
+        File dir = new File(dirName);
         if(!dir.exists()){
             System.out.println("Creating directory: " + dir.getAbsolutePath());
             dir.mkdir();
