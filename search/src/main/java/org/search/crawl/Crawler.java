@@ -11,6 +11,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.apache.tika.exception.TikaException;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.pdf.PDFParser;
+import org.apache.tika.sax.BodyContentHandler;
 import org.bson.Document;
 
 import com.mongodb.MongoClient;
@@ -24,14 +29,14 @@ import edu.uci.ics.crawler4j.url.WebURL;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.xml.sax.SAXException;
 
 public class Crawler extends WebCrawler{
 	HashMap<Integer, String> visitedSite = new HashMap<>();
 	MongoClient mongoClient = null;
 	MongoCollection<Document> collection = null;
 	MongoDatabase database = null;
-	boolean test = true
-            ;
+	boolean test = true;
 	private final static Pattern FILTERS = Pattern.compile(".*(\\.(css|js|gif|jpg"
             + "|png|mp3|mp3|zip|gz))$");
 	
@@ -46,17 +51,22 @@ public class Crawler extends WebCrawler{
 	
 	@Override
 	public WebURL handleUrlBeforeProcess(WebURL curURL) {
-		//TODO: handle the :80 here 
+		//TODO: handle the :80 here
+
+        if(curURL.getURL().endsWith("pdf")){
+            saveImage(curURL.getURL(), "pdf");
+            String fileName = curURL.getURL().substring(curURL.getURL().lastIndexOf("/"));
+            extractPDF("pdf/" + fileName);
+        }
+
 	    return curURL;
 	}
 	
 	@Override
     public boolean shouldVisit(Page referringPage, WebURL url) {
         String href = url.getURL().toLowerCase();
-        boolean visited;
-        visited = href.endsWith(":80:");
         //System.out.println("\n\nTESTING" + href + ": " + visited + "\n\n");
-        return !visitedSite.containsKey(href.hashCode()) && !visited;
+        return !visitedSite.containsKey(href.hashCode());
 
     }
 
@@ -134,24 +144,24 @@ public class Crawler extends WebCrawler{
 
         for (Element src : media) {
             if (src.tagName().contains("img")) {
-                saveImage(src.attr("abs:src"));
+                saveImage(src.attr("abs:src"), "images");
             }
         }
     }
 
-    private void saveImage(String imageUrl){
+    private void saveImage(String imageUrl, String folder){
         URL url = null;
         InputStream in;
         OutputStream out;
 
-        createDirectory("images");
+        createDirectory(folder);
 
         String ext = imageUrl.substring(imageUrl.lastIndexOf('.'));
         String fileName = imageUrl.substring(imageUrl.lastIndexOf("/"));
         try {
             url = new URL(imageUrl);
             in = url.openStream();
-            out = new FileOutputStream("images" + fileName);
+            out = new FileOutputStream(folder + fileName);
 
 
             byte[] b = new byte[2048];
@@ -168,6 +178,42 @@ public class Crawler extends WebCrawler{
         } catch (MalformedURLException e) {
             e.printStackTrace();
         } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void extractPDF(String file){
+        BodyContentHandler handler = new BodyContentHandler();
+        Metadata metadata = new Metadata();
+        FileInputStream inputstream = null;
+        try {
+            inputstream = new FileInputStream(new File(file));
+            ParseContext pcontext = new ParseContext();
+
+            //parsing the document using PDF parser
+            PDFParser pdfparser = new PDFParser();
+            pdfparser.parse(inputstream, handler, metadata,pcontext);
+
+            //getting the content of the document
+            System.out.println("Contents of the PDF :" + handler.toString());
+            PrintWriter out = new PrintWriter(file + ".txt");
+            out.print(handler.toString());
+            out.close();
+
+            //getting metadata of the document
+            System.out.println("Metadata of the PDF:");
+            String[] metadataNames = metadata.names();
+            
+            for(String name : metadataNames) {
+                System.out.println(name+ " : " + metadata.get(name));
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (TikaException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (SAXException e) {
             e.printStackTrace();
         }
     }
