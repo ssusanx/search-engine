@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.regex.Pattern;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.client.FindIterable;
@@ -273,23 +274,32 @@ public class Crawler extends WebCrawler{
         Document words = stopWords.find().first();
         StringTokenizer tokenStopWords = new StringTokenizer(words.get("words").toString(), ",");
 
+        /*
         for (String s : htmlTextSet) {
             System.out.println(s);
-        }
+        }*/
 
         while (tokenStopWords.hasMoreTokens()){
             String token = tokenStopWords.nextToken().replaceAll("\\s","");
 
             if(htmlTextSet.contains(token)){
                 htmlTextSet.remove(token);
-                System.out.println("removing" + token);
+                //System.out.println("removing" + token);
             }
         }
 
-        Document myDoc = index.find(eq("i", 71)).first();
-        
-        // Add url hash code
-        obj.append("hash", hashCode);
-        index.insertOne(obj);
+        for (String s : htmlTextSet) {
+            Document obj = new Document();
+            Document myDoc = index.find(eq("word", s)).first();
+
+            if(myDoc == null){
+                obj.append("word", s);
+                index.insertOne(obj);
+            }
+
+            index.updateOne(eq("word", s), new Document("$push", new Document("urlHash", hashCode)));
+            //System.out.println("adding: " + s + " to database");
+
+        }
     }
 }
