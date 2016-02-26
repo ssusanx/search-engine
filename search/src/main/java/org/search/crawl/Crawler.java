@@ -4,19 +4,20 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
+import com.mongodb.client.FindIterable;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.pdf.PDFParser;
 import org.apache.tika.sax.BodyContentHandler;
 import org.bson.Document;
+import static com.mongodb.client.model.Filters.*;
+
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -34,20 +35,22 @@ import org.xml.sax.SAXException;
 public class Crawler extends WebCrawler{
 	HashMap<Integer, String> visitedSite = new HashMap<>();
 	MongoClient mongoClient = null;
-	MongoCollection<Document> collection = null;
-	MongoDatabase database = null;
-	boolean test = true;
+    MongoDatabase database = null;
+    MongoCollection<Document> collection = null;
+    MongoCollection<Document> index = null;
+	MongoCollection<Document> stopWords = null;
+
 	private final static Pattern FILTERS = Pattern.compile(".*(\\.(css|js|gif|jpg"
             + "|png|mp3|mp3|zip|gz))$");
 	
 	@Override
 	public void onStart() {
-		
 		mongoClient = new MongoClient( "localhost" , 27017 );
 		database = mongoClient.getDatabase("local");
 		collection = database.getCollection("test");
-		
-	};
+		index = database.getCollection("index");
+        stopWords = database.getCollection("stopWords");
+	}
 	
 	@Override
 	public WebURL handleUrlBeforeProcess(WebURL curURL) {
@@ -58,6 +61,8 @@ public class Crawler extends WebCrawler{
             String fileName = curURL.getURL().substring(curURL.getURL().lastIndexOf("/"));
             extractPDF("pdf/" + fileName);
         }
+
+        System.out.println(curURL.getURL());
 
 	    return curURL;
 	}
@@ -130,6 +135,8 @@ public class Crawler extends WebCrawler{
 
             // Save images from url
             getMediaFromUrl(url);
+
+            tokenizing(url.toLowerCase().hashCode(), text);
         }
 	}
 
@@ -255,4 +262,34 @@ public class Crawler extends WebCrawler{
         }
     }
 
+    private void tokenizing(int hashCode, String text) {
+        HashSet<String> htmlTextSet = new HashSet();
+        StringTokenizer tokenText = new StringTokenizer(text, " ");
+
+        while(tokenText.hasMoreTokens()){
+            htmlTextSet.add(tokenText.nextToken());
+        }
+
+        Document words = stopWords.find().first();
+        StringTokenizer tokenStopWords = new StringTokenizer(words.get("words").toString(), ",");
+
+        for (String s : htmlTextSet) {
+            System.out.println(s);
+        }
+
+        while (tokenStopWords.hasMoreTokens()){
+            String token = tokenStopWords.nextToken().replaceAll("\\s","");
+
+            if(htmlTextSet.contains(token)){
+                htmlTextSet.remove(token);
+                System.out.println("removing" + token);
+            }
+        }
+
+        Document myDoc = index.find(eq("i", 71)).first();
+        
+        // Add url hash code
+        obj.append("hash", hashCode);
+        index.insertOne(obj);
+    }
 }
