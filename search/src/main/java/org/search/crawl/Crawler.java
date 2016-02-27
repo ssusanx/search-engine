@@ -40,6 +40,7 @@ public class Crawler extends WebCrawler{
     MongoCollection<Document> collection = null;
     MongoCollection<Document> index = null;
 	MongoCollection<Document> stopWords = null;
+    StringTokenizer tokenStopWords;
 
 	private final static Pattern FILTERS = Pattern.compile(".*(\\.(css|js|gif|jpg"
             + "|png|mp3|mp3|zip|gz))$");
@@ -51,6 +52,9 @@ public class Crawler extends WebCrawler{
 		collection = database.getCollection("test");
 		index = database.getCollection("index");
         stopWords = database.getCollection("stopWords");
+
+        Document words = stopWords.find().first();
+        tokenStopWords = new StringTokenizer(words.get("words").toString(), ",");
 	}
 	
 	@Override
@@ -271,13 +275,9 @@ public class Crawler extends WebCrawler{
             htmlTextSet.add(tokenText.nextToken());
         }
 
-        Document words = stopWords.find().first();
-        StringTokenizer tokenStopWords = new StringTokenizer(words.get("words").toString(), ",");
-
-        /*
         for (String s : htmlTextSet) {
             System.out.println(s);
-        }*/
+        }
 
         while (tokenStopWords.hasMoreTokens()){
             String token = tokenStopWords.nextToken().replaceAll("\\s","");
