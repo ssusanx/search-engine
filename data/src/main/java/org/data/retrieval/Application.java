@@ -13,27 +13,32 @@ public class Application {
 
     public static void main(String[] args)
     {
-    	MongoClient mongoClient = new MongoClient( "localhost" , 27017 );
-    	MongoCollection<Document> collection = null;
-    	MongoDatabase database = null;
-    	
-		database = mongoClient.getDatabase("local");
-		collection = database.getCollection("test");
-		
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    	MongoClient mongoClient = null;
+    	try{
+    		mongoClient = new MongoClient( "localhost" , 27017 );
+        	MongoCollection<Document> collection = null;
+        	MongoDatabase database = null;
+        	
+    		database = mongoClient.getDatabase("local");
+    		collection = database.getCollection("test");
+    		
+    		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
-        System.out.println("data dump started");
-        MongoCursor<Document> cursor = collection.find().iterator();
-        try {
-            while (cursor.hasNext()) {
-            	//String json = gson.toJson(obj);
-                System.out.println(gson.toJson(cursor.next()));
+            System.out.println("data dump started");
+            MongoCursor<Document> cursor = collection.find().iterator();
+            try {
+                while (cursor.hasNext()) {
+                	//String json = gson.toJson(obj);
+                    System.out.println(gson.toJson(cursor.next()));
+                }
+            } finally {
+                cursor.close();
             }
-        } finally {
-            cursor.close();
-        }
-        
-        mongoClient.close();
+    	} finally {
+    		
+    		mongoClient.close();
+    	}
+    	
     }
     
 }

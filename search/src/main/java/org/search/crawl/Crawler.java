@@ -37,7 +37,7 @@ public class Crawler extends WebCrawler{
 	HashMap<Integer, String> visitedSite = new HashMap<>();
 	MongoClient mongoClient = null;
     MongoDatabase database = null;
-    MongoCollection<Document> collection = null;
+    MongoCollection<Document> pages = null;
     MongoCollection<Document> index = null;
 	MongoCollection<Document> stopWords = null;
     StringTokenizer tokenStopWords;
@@ -49,7 +49,8 @@ public class Crawler extends WebCrawler{
 	public void onStart() {
 		mongoClient = new MongoClient( "localhost" , 27017 );
 		database = mongoClient.getDatabase("local");
-		collection = database.getCollection("test");
+		
+		pages = database.getCollection("pages");
 		index = database.getCollection("index");
         stopWords = database.getCollection("stopWords");
 
@@ -74,9 +75,16 @@ public class Crawler extends WebCrawler{
 	
 	@Override
     public boolean shouldVisit(Page referringPage, WebURL url) {
-        String href = url.getURL().toLowerCase();
-        //System.out.println("\n\nTESTING" + href + ": " + visited + "\n\n");
-        return !visitedSite.containsKey(href.hashCode());
+		
+		//if the seed url, visit
+		if(url.getDepth() == 0)
+			return true;
+		
+        Integer id = url.getURL().toLowerCase().hashCode();
+        FindIterable<Document> result = pages.find(eq("_id", id));
+        if(result.first() != null)
+        	System.out.println("skipping "+ url.getURL());
+        return result.first() == null;
 
     }
 
@@ -87,23 +95,10 @@ public class Crawler extends WebCrawler{
     @Override
     public void visit(Page page) {
         String url = page.getWebURL().getURL();
-        System.out.println("URL: " + url);
-        visitedSite.put(url.hashCode(), url.toLowerCase());
-        
+        System.out.println("Visiting URL: " + url);
         Boolean isExtract = (Boolean)getMyController().getCustomData();
         if(isExtract)
         	extract(page);
-
-        //System.out.println("\n\n\nVisited Sites:");
-
-        int counter = 0;
-        for (Integer name: visitedSite.keySet()){
-            counter += 1;
-            String key = name.toString();
-            String value = visitedSite.get(name).toString();
-            //System.out.println(counter + ": " + key + " " + value);
-            System.out.println("count: " + counter);
-        }
 
     }
 
@@ -117,7 +112,6 @@ public class Crawler extends WebCrawler{
             
             String text = htmlParseData.getText();
 
-            String html = htmlParseData.getHtml();
             Set<WebURL> links = htmlParseData.getOutgoingUrls();
             List<String> list = new ArrayList<String>();
             for (WebURL link : links) {
@@ -128,6 +122,7 @@ public class Crawler extends WebCrawler{
             System.out.println("Path: " + path);
 
             Document obj = new Document();
+            obj.append("_id", url.toLowerCase().hashCode());
             obj.append("url", url);
             obj.append("hash", url.toLowerCase().hashCode());
             obj.append("title", metatags.get("title"));
@@ -136,7 +131,7 @@ public class Crawler extends WebCrawler{
             obj.append("text", text);
             obj.append("links", list);
             obj.append("path", path);
-            collection.insertOne(obj);
+            pages.insertOne(obj);
 
             // Save images from url
             getMediaFromUrl(url);
@@ -275,9 +270,9 @@ public class Crawler extends WebCrawler{
             htmlTextSet.add(tokenText.nextToken());
         }
 
-        for (String s : htmlTextSet) {
-            System.out.println(s);
-        }
+//        for (String s : htmlTextSet) {
+//            System.out.println(s);
+//        }
 
         while (tokenStopWords.hasMoreTokens()){
             String token = tokenStopWords.nextToken().replaceAll("\\s","");
