@@ -102,7 +102,7 @@ public class Crawler extends WebCrawler{
             String key = name.toString();
             String value = visitedSite.get(name).toString();
             //System.out.println(counter + ": " + key + " " + value);
-            System.out.println("count: " + counter);
+            //System.out.println("count: " + counter);
         }
 
     }
@@ -136,7 +136,11 @@ public class Crawler extends WebCrawler{
             obj.append("text", text);
             obj.append("links", list);
             obj.append("path", path);
+            obj.append("outLinks", links.size());
+            //obj.append("inLinks", (int)(Math.random() * 101));
             collection.insertOne(obj);
+
+            incomingLinks(links);
 
             // Save images from url
             getMediaFromUrl(url);
@@ -275,9 +279,10 @@ public class Crawler extends WebCrawler{
             htmlTextSet.add(tokenText.nextToken());
         }
 
+        /*
         for (String s : htmlTextSet) {
             System.out.println(s);
-        }
+        }*/
 
         while (tokenStopWords.hasMoreTokens()){
             String token = tokenStopWords.nextToken().replaceAll("\\s","");
@@ -300,6 +305,30 @@ public class Crawler extends WebCrawler{
             index.updateOne(eq("word", s), new Document("$push", new Document("urlHash", hashCode)));
             //System.out.println("adding: " + s + " to database");
 
+        }
+    }
+
+    private void incomingLinks(Set<WebURL> links){
+        System.out.println("\n\n\n\n\n\n IncomingLinks");
+
+        for(WebURL link : links){
+            String url = link.getURL();
+            int urlHash = url.toLowerCase().hashCode();
+
+            Document obj = new Document();
+            Document doc = collection.find(eq("hash", urlHash)).first();
+
+            if(doc == null){
+                obj.append("url", url);
+                obj.append("hash", url.toLowerCase().hashCode());
+                obj.append("inLinks", 1);
+                collection.insertOne(obj);
+            }else{
+                int incomingLinks = ((Number) doc.get("inLinks")).intValue() + 1;
+                System.out.println("Total InLinks: " + incomingLinks);
+                collection.updateOne(eq("urlHash", urlHash), new Document("$set", new Document("inLinks", incomingLinks)));
+
+            }
         }
     }
 }
