@@ -37,7 +37,7 @@ public class Crawler extends WebCrawler{
 	HashMap<Integer, String> visitedSite = new HashMap<>();
 	MongoClient mongoClient = null;
     MongoDatabase database = null;
-    MongoCollection<Document> collection = null;
+    MongoCollection<Document> pages = null;
     MongoCollection<Document> index = null;
 	MongoCollection<Document> stopWords = null;
     StringTokenizer tokenStopWords;
@@ -49,7 +49,8 @@ public class Crawler extends WebCrawler{
 	public void onStart() {
 		mongoClient = new MongoClient( "localhost" , 27017 );
 		database = mongoClient.getDatabase("local");
-		collection = database.getCollection("test");
+		
+		pages = database.getCollection("pages");
 		index = database.getCollection("index");
         stopWords = database.getCollection("stopWords");
 
@@ -74,9 +75,16 @@ public class Crawler extends WebCrawler{
 	
 	@Override
     public boolean shouldVisit(Page referringPage, WebURL url) {
-        String href = url.getURL().toLowerCase();
-        //System.out.println("\n\nTESTING" + href + ": " + visited + "\n\n");
-        return !visitedSite.containsKey(href.hashCode());
+		
+		//if the seed url, visit
+		if(url.getDepth() == 0)
+			return true;
+		
+        Integer id = url.getURL().toLowerCase().hashCode();
+        FindIterable<Document> result = pages.find(eq("_id", id));
+        if(result.first() != null)
+        	System.out.println("skipping "+ url.getURL());
+        return result.first() == null;
 
     }
 
@@ -87,9 +95,7 @@ public class Crawler extends WebCrawler{
     @Override
     public void visit(Page page) {
         String url = page.getWebURL().getURL();
-        System.out.println("URL: " + url);
-        visitedSite.put(url.hashCode(), url.toLowerCase());
-        
+        System.out.println("Visiting URL: " + url);
         Boolean isExtract = (Boolean)getMyController().getCustomData();
         if(isExtract)
         	extract(page);
@@ -104,7 +110,6 @@ public class Crawler extends WebCrawler{
             //System.out.println(counter + ": " + key + " " + value);
             //System.out.println("count: " + counter);
         }
-
     }
 
 	private void extract(Page page) {
@@ -117,7 +122,6 @@ public class Crawler extends WebCrawler{
             
             String text = htmlParseData.getText();
 
-            String html = htmlParseData.getHtml();
             Set<WebURL> links = htmlParseData.getOutgoingUrls();
             List<String> list = new ArrayList<String>();
             for (WebURL link : links) {
@@ -127,20 +131,56 @@ public class Crawler extends WebCrawler{
             String path = rawHTML(url, text);
             System.out.println("Path: " + path);
 
-            Document obj = new Document();
-            obj.append("url", url);
-            obj.append("hash", url.toLowerCase().hashCode());
-            obj.append("title", metatags.get("title"));
-            obj.append("description", metatags.get("description"));
-            obj.append("content-type", metatags.get("content-type"));
-            obj.append("text", text);
-            obj.append("links", list);
-            obj.append("path", path);
-            obj.append("outLinks", links.size());
-            //obj.append("inLinks", (int)(Math.random() * 101));
-            collection.insertOne(obj);
+            Document doc = pages.find(eq("_id", url.toLowerCase().hashCode())).first();
+            if(doc == null){
+                Document obj = new Document();
+                obj.append("_id", url.toLowerCase().hashCode());
+                obj.append("url", url);
+                obj.append("hash", url.toLowerCase().hashCode());
+                obj.append("title", metatags.get("title"));
+                obj.append("description", metatags.get("description"));
+                obj.append("content-type", metatags.get("content-type"));
+                obj.append("text", text);
+                obj.append("links", list);
+                obj.append("path", path);
+                obj.append("outLinks", links.size());
+                obj.append("inLinks", 0);
+                obj.append("rank", 0.33);
+                obj.append("currentRank", 0.33);
+                //obj.append("inLinks", (int)(Math.random() * 101));
+                pages.insertOne(obj);
+            }else{
+                pages.updateOne(new Document("_id", url.toLowerCase().hashCode()),
+                        new Document("$set", new Document("title", metatags.get("title"))));
+                pages.updateOne(new Document("_id", url.toLowerCase().hashCode()),
+                        new Document("$set", new Document("description", metatags.get("description"))));
+                pages.updateOne(new Document("_id", url.toLowerCase().hashCode()),
+                        new Document("$set", new Document("content-type", metatags.get("content-type"))));
+                pages.updateOne(new Document("_id", url.toLowerCase().hashCode()),
+                        new Document("$set", new Document("text", text)));
+                pages.updateOne(new Document("_id", url.toLowerCase().hashCode()),
+                        new Document("$set", new Document("links", list)));
+                pages.updateOne(new Document("_id", url.toLowerCase().hashCode()),
+                        new Document("$set", new Document("path", path)));
+                pages.updateOne(new Document("_id", url.toLowerCase().hashCode()),
+                        new Document("$set", new Document("outLinks", links.size())));
+                pages.updateOne(new Document("_id", url.toLowerCase().hashCode()),
+                        new Document("$set", new Document("rank", 0.33)));
+                pages.updateOne(new Document("_id", url.toLowerCase().hashCode()),
+                        new Document("$set", new Document("currentRank", 0.33)));
+                /*
+                pages.updateOne(new Document("_id", url.toLowerCase().hashCode()),
+                        new Document("$set", new Document("title", metatags.get("title"))
+                                .append("$set", new Document("description", metatags.get("description")))
+                                .append("$set", new Document("content-type", metatags.get("content-type")))
+                                .append("$set", new Document("text", text))
+                                .append("$set", new Document("links", list))
+                                .append("$set", new Document("path", path))
+                                .append("$set", new Document("outLinks", links.size()))));
+                */
+            }
 
-            incomingLinks(links);
+            incomingLinks(url, list);
 
             // Save images from url
             getMediaFromUrl(url);
@@ -284,6 +324,10 @@ public class Crawler extends WebCrawler{
             System.out.println(s);
         }*/
 
+//        for (String s : htmlTextSet) {
+//            System.out.println(s);
+//        }
+
         while (tokenStopWords.hasMoreTokens()){
             String token = tokenStopWords.nextToken().replaceAll("\\s","");
 
@@ -308,27 +352,35 @@ public class Crawler extends WebCrawler{
         }
     }
 
-    private void incomingLinks(Set<WebURL> links){
+    private void incomingLinks(String url, List<String> links){
         System.out.println("\n\n\n\n\n\n IncomingLinks");
 
-        for(WebURL link : links){
-            String url = link.getURL();
-            int urlHash = url.toLowerCase().hashCode();
+        for(String link : links){
+            int urlHash = link.toLowerCase().hashCode();
 
             Document obj = new Document();
-            Document doc = collection.find(eq("hash", urlHash)).first();
+            Document doc = pages.find(eq("_id", urlHash)).first();
 
             if(doc == null){
-                obj.append("url", url);
-                obj.append("hash", url.toLowerCase().hashCode());
+                System.out.println(link + " Does not exist \n Creating entry");
+                obj.append("_id", link.toLowerCase().hashCode());
+                obj.append("url", link);
+                obj.append("hash", link.toLowerCase().hashCode());
+                //obj.append("incomingLinks", url);
                 obj.append("inLinks", 1);
-                collection.insertOne(obj);
-            }else{
-                int incomingLinks = ((Number) doc.get("inLinks")).intValue() + 1;
-                System.out.println("Total InLinks: " + incomingLinks);
-                collection.updateOne(eq("urlHash", urlHash), new Document("$set", new Document("inLinks", incomingLinks)));
+                obj.append("rank", 0.33);
+                obj.append("currentRank", 0.33);
+                pages.insertOne(obj);
 
+            }else {
+                int incomingLinks = ((Number) doc.get("inLinks")).intValue() + 1;
+                System.out.println("Total sites linking to " + link + ": " + incomingLinks);
+                System.out.println("Total InLinks: " + incomingLinks);
+
+                pages.updateOne(eq("hash", urlHash), new Document("$set", new Document("inLinks", incomingLinks)));
             }
+            pages.updateOne(new Document("_id", urlHash),
+                    new Document("$push", new Document("incomingLinks", url)));
         }
     }
 }

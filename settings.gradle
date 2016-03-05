@@ -1,3 +1,4 @@
 rootProject.name = 'search-engine'
 include 'search'
 include 'data'
+include 'query'
