@@ -128,5 +128,12 @@ public class RankProcessor {
 //
 //        }
     }
-
+    
+    private double normalized(double x, double min,  double max){
+	if(Double.compare(min, max) == 0){
+	    return 0.5;
+	}
+		
+	return (x - min)/(max - min);
+    }
 }
