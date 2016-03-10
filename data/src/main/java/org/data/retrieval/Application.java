@@ -8,7 +8,9 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
+import org.bson.codecs.DoubleCodec;
 
+import java.text.DecimalFormat;
 import java.util.StringTokenizer;
 
 import static com.mongodb.client.model.Filters.eq;
@@ -43,10 +45,31 @@ public class Application {
     		mongoClient.close();
     	}
     	*/
-
+        reset();
         rank();
 
 
+    }
+
+    private static void reset(){
+        MongoClient mongoClient = new MongoClient( "localhost" , 27017 );
+        MongoDatabase database = mongoClient.getDatabase("local");
+        MongoCollection<org.bson.Document> pages = database.getCollection("pages");
+
+        MongoCursor<Document> cursor = pages.find().iterator();
+
+        double rank = 1.0 / pages.count();
+
+        try {
+            while(cursor.hasNext()){
+                Document obj = cursor.next();
+
+                pages.updateOne(eq("_id", obj.get("_id")), new Document("$set", new Document("rank", rank)));
+                pages.updateOne(eq("_id", obj.get("_id")), new Document("$set", new Document("currentRank", rank )));
+            }
+        }finally {
+
+        }
     }
 
     private static void rank(){
@@ -54,58 +77,85 @@ public class Application {
         MongoDatabase database = mongoClient.getDatabase("local");
         MongoCollection<org.bson.Document> pages = database.getCollection("pages");
 
-        MongoCursor<Document> cursor = pages.find().iterator();
+        MongoCursor<Document> cursor;
 
-        try{
-            while(cursor.hasNext()) {
-                Document obj = cursor.next();
-                System.out.println("\n\n\n\n" + obj.get("url") + "   " + obj.get("hash"));
+        double totalDone = 0;
+        long collectionSize = pages.count();
+        System.out.println("Before loop: " + (totalDone / collectionSize));
+        while(!((totalDone / collectionSize) > 0.80)){
+            totalDone = 0;
+            cursor = pages.find().iterator();
+            try{
+                while(cursor.hasNext()) {
+                    Document obj = cursor.next();
+                    //System.out.println("\n\n\n\n" + obj.get("url") + "   " + obj.get("hash"));
 
-                if(obj.get("incomingLinks") == null){
-                    continue;
+                    if(obj.get("incomingLinks") == null){
+                        continue;
+                    }
+                    StringTokenizer st = new StringTokenizer(obj.get("incomingLinks").toString(), ",");
+
+                    double total = 0;
+                    while (st.hasMoreTokens()) {
+                        //System.out.println("Current rank: " + total);
+
+                        String url = st.nextToken().replace("[", "").replace("]", "").replace(" ", "");
+                        int hash = url.toLowerCase().hashCode();
+
+                        //System.out.print("url: " + url + " hash: " + url.toLowerCase().hashCode() + " ");
+                        Document doc = pages.find(eq("_id", hash)).first();
+
+                        double rank = (Double) doc.get("currentRank");
+                        double links = ((Number) doc.get("outLinks")).doubleValue();
+                        //System.out.print(total + " + " +  rank + " / " + links + " = ");
+                        total += (rank / links);
+                        //System.out.println(total);
+                       // System.out.println("rank: " + (rank / links));
+                    }
+                    DecimalFormat df = new DecimalFormat("#.#########");
+                    total = Double.parseDouble(df.format(total));
+                    pages.updateOne(eq("_id", obj.get("_id")), new Document("$set", new Document("rank", total)));
+
+                    //System.out.println("Final Total: " + total);
+                    //System.out.println("Rank:" + obj.get("rank"));
+                    //System.out.println("Total links" + obj.get("outLinks"));
                 }
-                StringTokenizer st = new StringTokenizer(obj.get("incomingLinks").toString(), ",");
-
-                double total = 0;
-                while (st.hasMoreTokens()) {
-                    System.out.println("Current rank: " + total);
-
-                    String url = st.nextToken().replace("[", "").replace("]", "").replace(" ", "");
-                    int hash = url.toLowerCase().hashCode();
-
-                    System.out.print("url: " + url + " hash: " + url.toLowerCase().hashCode() + " ");
-                    Document doc = pages.find(eq("_id", hash)).first();
-
-                    double rank = (Double) doc.get("currentRank");
-                    double links = ((Number) doc.get("outLinks")).doubleValue();
-                    //System.out.print(total + " + " +  rank + " / " + links + " = ");
-                    total += (rank / links);
-                    //System.out.println(total);
-                    System.out.println("rank: " + (rank / links));
-                }
-                pages.updateOne(eq("_id", obj.get("_id")), new Document("$set", new Document("rank", total)));
-
-                System.out.println("Final Total: " + total);
-                //System.out.println("Rank:" + obj.get("rank"));
-                //System.out.println("Total links" + obj.get("outLinks"));
+            } finally {
+                cursor.close();
             }
-        } finally {
-            cursor.close();
-        }
 
-        cursor = pages.find().iterator();
-        try {
-            while (cursor.hasNext()) {
-                Document obj = cursor.next();
-                if(obj.get("incomingLinks") == null){
-                    continue;
+            cursor = pages.find().iterator();
+            try {
+                while (cursor.hasNext()) {
+                    Document obj = cursor.next();
+                    if(obj.get("incomingLinks") == null){
+                        continue;
+                    }
+
+                    double oldRank = ((Number) obj.get("currentRank")).doubleValue();
+                    double newRank = ((Number) obj.get("rank")).doubleValue();
+                    //check if rank converge
+                    int compare = Double.compare(oldRank, newRank);
+
+                    if(compare == 0){
+                        totalDone++;
+                    }else{
+                        if(oldRank - newRank < 0.000001){
+                            //done = true;
+                            totalDone++;
+                            //System.out.println("\n\n\n\n\n\n total Done: " + totalDone);
+                        }
+                    }
+
+                    double currentRank = ((Number) obj.get("rank")).doubleValue();
+                    //double currentRank = ((Number) obj.get("rank")).doubleValue();
+                    pages.updateOne(eq("_id", obj.get("_id")), new Document("$set", new Document("currentRank", currentRank)));
                 }
-
-                double currentRank = ((Number) obj.get("rank")).doubleValue();
-                pages.updateOne(eq("_id", obj.get("_id")), new Document("$set", new Document("currentRank", currentRank)));
+            } finally {
+                cursor.close();
             }
-        } finally {
-            cursor.close();
+
+            System.out.println("percentage done: " +  (totalDone / collectionSize));
         }
     }
 }
