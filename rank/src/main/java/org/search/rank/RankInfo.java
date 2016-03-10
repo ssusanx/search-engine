@@ -1,14 +1,24 @@
 package org.search.rank;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import org.bson.types.ObjectId;
+import org.mongodb.morphia.annotations.Entity;
+import org.mongodb.morphia.annotations.Id;
+
+@Entity("index")
 public class RankInfo {
 	
+	@Id
+    private ObjectId id;
+	private String term;
+	private double tfIdf;
 	private Integer count;
-	private List<Integer> positions = new ArrayList<Integer>();
-	private String urlHash;
-	
+	private double linkAnalysis;
+	private Set<Integer> docIds;
 	
 	public Integer getCount() {
 		return count;
@@ -16,41 +26,40 @@ public class RankInfo {
 	public void setCount(Integer count) {
 		this.count = count;
 	}
-	public List<Integer> getPositions() {
-		return positions;
+	public String getTerm() {
+		return term;
 	}
-	public void setPositions(List<Integer> positions) {
-		this.positions = positions;
+	public void setTerm(String term) {
+		this.term = term;
 	}
-	public String getUrlHash() {
-		return urlHash;
+	public double getTfIdf() {
+		return tfIdf;
 	}
-	public void setUrlHash(String urlHash) {
-		this.urlHash = urlHash;
+	public void setTfIdf(double tfIdf) {
+		this.tfIdf = tfIdf;
 	}
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((urlHash == null) ? 0 : urlHash.hashCode());
-		return result;
+	public double getLinkAnalysis() {
+		return linkAnalysis;
 	}
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		RankInfo other = (RankInfo) obj;
-		if (urlHash == null) {
-			if (other.urlHash != null)
-				return false;
-		} else if (!urlHash.equals(other.urlHash))
-			return false;
-		return true;
+	public void setLinkAnalysis(double linkAnalysis) {
+		this.linkAnalysis = linkAnalysis;
+	}
+	public Set<Integer> getDocIds() {
+		return docIds;
+	}
+	public void setDocIds(Set<Integer> docIds) {
+		this.docIds = docIds;
 	}
 	
+	public void addDocId(Integer urlHash)
+	{
+		if(docIds == null)
+		{
+			docIds = new HashSet<Integer>();
+		}
+		
+		docIds.add(urlHash);
+		
+	}
 
 }

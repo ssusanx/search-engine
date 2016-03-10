@@ -1,54 +1,62 @@
 package org.search.rank;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
-import org.apache.tika.metadata.Metadata;
-import org.apache.tika.parser.ParseContext;
-import org.apache.tika.parser.html.HtmlParser;
-import org.apache.tika.sax.BodyContentHandler;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 
 public class Application {
 
     public static void main(String[] args) throws IOException
     {
     	
-    	RankProcessor rank = new RankProcessor();
-    	rank.index();
-    	
-    	
-    	
-//    	MongoClient mongoClient = null;
-//    	try{
-//    		mongoClient = new MongoClient( "localhost" , 27017 );
-//        	MongoCollection<Document> collection = null;
-//        	MongoDatabase database = null;
-//        	
-//    		database = mongoClient.getDatabase("local");
-//    		collection = database.getCollection("pages");
-//    		
-//    		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-//
-//            System.out.println("data dump started");
-//            MongoCursor<Document> cursor = collection.find().iterator();
-//            try {
-//                while (cursor.hasNext()) {
-//                	//String json = gson.toJson(obj);
-//                    System.out.println(gson.toJson(cursor.next()));
-//                }
-//            } finally {
-//                cursor.close();
-//            }
-//    	} finally {
-//    		
-//    		mongoClient.close();
-//    	}
-    	
+    	Options options = setOptions();
+        // Parse Arguments
+        CommandLine cmd = parseArg(options, args);
+
+        //TODO: organize this part
+        //this indexes wiki small, only to be called once
+        if(cmd.hasOption("i"))
+        {
+        	//Indexer indexer = new Indexer();
+        	//indexer.index();
+        	
+        	RankProcessor rankProcessor = new RankProcessor();
+        	rankProcessor.process();
+        }
+        else if(cmd.hasOption("r") )
+        {
+        	// calculates the tf idf and link analysis
+        	RankProcessor rankProcessor = new RankProcessor();
+        	rankProcessor.rank();
+        }
+    }
+    
+    private static Options setOptions() {
+        Options options = new Options();
+
+        options.addOption("p", true, "path");// set the path to document collection
+        options.addOption("i", false, "index");
+        options.addOption("r", false, "rank");
+
+        return options;
+    }
+
+    private static CommandLine parseArg(Options options, String[] args) {
+        CommandLineParser parser = new DefaultParser();
+        CommandLine cmd = null;
+
+        try {
+            cmd = parser.parse(options, args);
+        } catch (ParseException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        return cmd;
     }
     
 }
