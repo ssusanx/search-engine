@@ -90,7 +90,6 @@ public class RankProcessor {
 					//here is a list of processing 
 					//saveDocument(bodyHandler.toString(), filePath, metadata, linkHandler.getLinks());
 					index(bodyHandler.toString(), filePath);
-					//rank()
 					
 					String[] metadataNames = metadata.names();
 					  
@@ -150,7 +149,8 @@ public class RankProcessor {
           stopWordsList.add(token);
 		}
 		
-        String[] terms = text.split("\\s+");
+		//split on non alphanumeric character to remove punctuations for now 
+        String[] terms = text.split("\\W+");
         
         for(int i = 0 ; i < terms.length; i++)
         {
@@ -166,11 +166,11 @@ public class RankProcessor {
         	Integer id = filePath.getFileName().toString().hashCode();
         	
         	//fetch term from mongo
-        	RankInfo doc = (RankInfo) datastore.createQuery(RankInfo.class).field("term").equal(term).get();
+        	Term doc = (Term) datastore.createQuery(Term.class).field("term").equal(term).get();
         	
             if(doc == null)
             {
-            	doc = new RankInfo();
+            	doc = new Term();
             	doc.setTerm(term);
             }
             
@@ -181,9 +181,31 @@ public class RankProcessor {
 
     }
 	
+	/**
+	 * calculates the ranking of a term
+	 * 
+	 */
 	public void rank() {
-		List<RankInfo> rankInfos = datastore.createQuery(RankInfo.class).asList();
-		
+		List<Term> terms = datastore.createQuery(Term.class).asList();
+		for(Term term : terms)
+		{
+			calculateTfIdf(term);
+			//link analysis
+			
+		}
+	}
+	
+	private void calculateTfIdf(Term term)
+	{
+		for(Integer docId : term.getDocIds().keySet())
+		{
+			Rank doc = term.getDocIds().get(docId);
+			double tf = (double)doc.getTf();
+			double tf_tdf = tf/term.getDocIds().size();
+			
+			System.out.println("tf_tdf: " + tf_tdf);
+			doc.setTfIdf( normalized(tf_tdf, 0, 1));
+		}
 	}
     
     private double normalized(double x, double min,  double max){

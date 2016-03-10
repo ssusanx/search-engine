@@ -1,8 +1,10 @@
 package org.search.rank;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.bson.types.ObjectId;
@@ -10,33 +12,19 @@ import org.mongodb.morphia.annotations.Entity;
 import org.mongodb.morphia.annotations.Id;
 
 @Entity("index")
-public class RankInfo {
+public class Term {
 	
 	@Id
     private ObjectId id;
 	private String term;
-	private double tfIdf;
-	private Integer count;
 	private double linkAnalysis;
-	private Set<Integer> docIds;
+	private Map<Integer, Rank> docIds;
 	
-	public Integer getCount() {
-		return count;
-	}
-	public void setCount(Integer count) {
-		this.count = count;
-	}
 	public String getTerm() {
 		return term;
 	}
 	public void setTerm(String term) {
 		this.term = term;
-	}
-	public double getTfIdf() {
-		return tfIdf;
-	}
-	public void setTfIdf(double tfIdf) {
-		this.tfIdf = tfIdf;
 	}
 	public double getLinkAnalysis() {
 		return linkAnalysis;
@@ -44,10 +32,10 @@ public class RankInfo {
 	public void setLinkAnalysis(double linkAnalysis) {
 		this.linkAnalysis = linkAnalysis;
 	}
-	public Set<Integer> getDocIds() {
+	public Map<Integer, Rank> getDocIds() {
 		return docIds;
 	}
-	public void setDocIds(Set<Integer> docIds) {
+	public void setDocIds(Map<Integer, Rank> docIds) {
 		this.docIds = docIds;
 	}
 	
@@ -55,10 +43,19 @@ public class RankInfo {
 	{
 		if(docIds == null)
 		{
-			docIds = new HashSet<Integer>();
+			docIds = new HashMap<Integer, Rank>();
 		}
 		
-		docIds.add(urlHash);
+		Rank r = docIds.get(urlHash);
+		if(r == null)
+		{
+			r = new Rank();
+			r.setDocId(urlHash);
+			r.setTf(0);
+		}
+		
+		r.setTf(r.getTf() + 1 );
+		docIds.put(urlHash, r);
 		
 	}
 
