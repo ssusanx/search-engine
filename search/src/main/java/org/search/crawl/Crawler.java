@@ -33,6 +33,9 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.xml.sax.SAXException;
 
+import java.text.DecimalFormat;
+
+
 public class Crawler extends WebCrawler{
 	HashMap<Integer, String> visitedSite = new HashMap<>();
 	MongoClient mongoClient = null;
