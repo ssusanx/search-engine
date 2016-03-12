@@ -133,7 +133,7 @@ public class RankProcessor {
         	String uri = link.getUri();
         	
         	//System.out.println("link before parse: " + uri);
-        	if(!uri.isEmpty() && uri.startsWith("http"))
+        	if(!uri.isEmpty() && uri.startsWith("../") && uri.endsWith(".html"))
         	{
         		//list.add(uri.substring(uri.lastIndexOf("/") + 1, uri.length()-1));
         		//only add http outgoing links for now  
@@ -290,7 +290,7 @@ public class RankProcessor {
                 System.out.println("Total sites linking to " + link + ": " + incomingLinks);
                 System.out.println("Total InLinks: " + incomingLinks);
 
-                pages.updateOne(eq("hash", urlHash), new Document("$set", new Document("inLinks", incomingLinks)));
+                pages.updateOne(eq("_id", urlHash), new Document("$set", new Document("inLinks", incomingLinks)));
             }
             pages.updateOne(new Document("_id", urlHash),
                     new Document("$push", new Document("incomingLinks", url)));
