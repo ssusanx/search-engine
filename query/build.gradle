@@ -30,6 +30,10 @@ repositories {
 dependencies {
 	compile('org.springframework.boot:spring-boot-starter-actuator')
 	compile('org.springframework.boot:spring-boot-starter-web')
+	compile "org.mongodb:mongo-java-driver:3.0.4"
+	compile 'com.google.code.gson:gson:2.6.1'
+	compile 'org.mongodb.morphia:morphia:1.1.0'
+	
 	
 //	runtime (
 //		['ch.qos.logback:logback-classic:1.1.2']

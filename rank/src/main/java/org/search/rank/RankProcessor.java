@@ -228,7 +228,7 @@ public class RankProcessor {
 		for(Term term : terms)
 		{
 			calculateTfIdf(term);
-			//link analysis
+			datastore.save(term);
 		}
 	}
 

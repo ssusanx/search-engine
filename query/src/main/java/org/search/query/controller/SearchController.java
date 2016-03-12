@@ -1,5 +1,7 @@
 package org.search.query.controller;
 
+import java.util.List;
+
 import javax.annotation.Resource;
 
 import org.search.query.service.SearchService;
@@ -20,11 +22,11 @@ public class SearchController {
 	@Resource
 	private SearchService searchService;
 
-    @RequestMapping(value="/search", method=RequestMethod.POST)
-    public @ResponseBody String handleFileUpload( @RequestParam("file") MultipartFile file)
+    @RequestMapping(value="/search", method=RequestMethod.GET)
+    public @ResponseBody List<String> search( @RequestParam("term") String term)
     {
-		return null;
     	
+		return searchService.find(term);
     	
     }
 

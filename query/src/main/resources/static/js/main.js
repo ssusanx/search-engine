@@ -1,8 +1,14 @@
-/**
- * 
- */
 
-angular.module('search', [])
-  .controller('home', function($scope) {
-    $scope.greeting = {id: 'xxx', content: 'Hello World!'}
-})
+
+var angularApp = angular.module('search', []);
+angularApp.controller('home', ['$scope', '$http', function ($scope, $http) {
+
+
+    $scope.getSearchResult = function(term){
+	    $http.get('http://localhost:9091/search?term='+term).
+        success(function(data) {
+            $scope.results = data;
+        });
+    }
+
+}]);
