@@ -1,9 +1,6 @@
 package org.search.rank;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -17,46 +14,28 @@ public class Term {
 	@Id
     private ObjectId id;
 	private String term;
-	private double linkAnalysis;
-	private Map<Integer, Rank> docIds;
+	private Set<Rank> docIds;
 	
 	public String getTerm() {
 		return term;
 	}
+	public ObjectId getId() {
+		return id;
+	}
+	public void setId(ObjectId id) {
+		this.id = id;
+	}
 	public void setTerm(String term) {
 		this.term = term;
 	}
-	public double getLinkAnalysis() {
-		return linkAnalysis;
-	}
-	public void setLinkAnalysis(double linkAnalysis) {
-		this.linkAnalysis = linkAnalysis;
-	}
-	public Map<Integer, Rank> getDocIds() {
+	public Set<Rank> getDocIds() {
 		return docIds;
 	}
-	public void setDocIds(Map<Integer, Rank> docIds) {
+	public void setDocIds(Set<Rank> docIds) {
 		this.docIds = docIds;
 	}
 	
-	public void addDocId(Integer urlHash)
-	{
-		if(docIds == null)
-		{
-			docIds = new HashMap<Integer, Rank>();
-		}
-		
-		Rank r = docIds.get(urlHash);
-		if(r == null)
-		{
-			r = new Rank();
-			r.setDocId(urlHash);
-			r.setTf(0);
-		}
-		
-		r.setTf(r.getTf() + 1 );
-		docIds.put(urlHash, r);
-		
-	}
+	
+	
 
 }
