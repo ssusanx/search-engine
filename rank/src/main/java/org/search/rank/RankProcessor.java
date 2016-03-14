@@ -105,11 +105,6 @@ public class RankProcessor {
 					saveDocument(bodyHandler.toString(), filePath, metadata, linkHandler.getLinks());
 					index(bodyHandler.toString(), filePath);
 					
-					String[] metadataNames = metadata.names();
-					  
-					for(String name : metadataNames) {
-						System.out.println(name + ":   " + metadata.get(name));  
-					}
 					
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
@@ -132,11 +127,8 @@ public class RankProcessor {
         for (Link link : links) {
         	String uri = link.getUri();
         	
-        	//System.out.println("link before parse: " + uri);
-        	if(!uri.isEmpty() && uri.startsWith("http"))
+        	if(!uri.isEmpty() && !uri.startsWith("http") && !uri.startsWith("../") && uri.endsWith(".html"))
         	{
-        		//list.add(uri.substring(uri.lastIndexOf("/") + 1, uri.length()-1));
-        		//only add http outgoing links for now  
         		list.add(uri);
         	}
         }
@@ -151,11 +143,10 @@ public class RankProcessor {
             obj.append("content-type", metadata.get("content-type"));
             obj.append("text", text);
             obj.append("links", list);
-            obj.append("path", "");
+            obj.append("path", filePath.getFileName().toAbsolutePath().toString());
             obj.append("outLinks", list.size());
             obj.append("inLinks", 0);
-            obj.append("rank", 0.33);
-            obj.append("currentRank", 0.33);
+            obj.append("rank", 0);
 
             pages.insertOne(obj);
         } else {
