@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,28 +26,11 @@ import org.apache.tika.sax.TeeContentHandler;
 import org.bson.Document;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
-import org.mongodb.morphia.query.QueryImpl;
-import org.mongodb.morphia.query.Query;
-import org.mongodb.morphia.query.UpdateOperations;
 
 import com.mongodb.MongoClient;
-import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoCursor;
-
-import java.text.DecimalFormat;
-
-import org.bson.codecs.DoubleCodec;
-
-import java.text.DecimalFormat;
-import java.util.StringTokenizer;
-import org.bson.Document;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
-import static com.mongodb.client.model.Filters.eq;
+import com.mongodb.client.MongoDatabase;
 
 public class RankProcessor {
 	
@@ -84,7 +68,7 @@ public class RankProcessor {
 	
 	public void process() throws IOException
     {
-    	Files.walk(Paths.get("C:\\Users\\jwj96\\Downloads\\en\\articles")).forEach(filePath -> {
+    	Files.walk(Paths.get("/Users/susansun/school/cs454-winter-2016/scripts/munged")).forEach(filePath -> {
     	    if (Files.isRegularFile(filePath)) {
     	    	try {
     	    		ByteArrayInputStream content = new ByteArrayInputStream(Files.readAllBytes(filePath));
@@ -102,14 +86,8 @@ public class RankProcessor {
 					htmlparser.parse(content, teeHandler, metadata, pcontext);
 					
 					//here is a list of processing 
-					saveDocument(bodyHandler.toString(), filePath, metadata, linkHandler.getLinks());
-					index(bodyHandler.toString(), filePath);
-					
-					String[] metadataNames = metadata.names();
-					  
-					for(String name : metadataNames) {
-						System.out.println(name + ":   " + metadata.get(name));  
-					}
+					//saveDocument(bodyHandler.toString(), filePath, metadata, linkHandler.getLinks());
+					index2(bodyHandler.toString(), filePath);
 					
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
@@ -131,12 +109,9 @@ public class RankProcessor {
 		List<String> list = new ArrayList<String>();
         for (Link link : links) {
         	String uri = link.getUri();
-        	
-        	//System.out.println("link before parse: " + uri);
-        	if(!uri.isEmpty() && uri.startsWith("../") && uri.endsWith(".html"))
+
+        	if(!uri.isEmpty() && !uri.startsWith("http") && !uri.startsWith("../") && uri.endsWith(".html"))
         	{
-        		//list.add(uri.substring(uri.lastIndexOf("/") + 1, uri.length()-1));
-        		//only add http outgoing links for now  
         		list.add(uri);
         	}
         }
@@ -151,34 +126,38 @@ public class RankProcessor {
             obj.append("content-type", metadata.get("content-type"));
             obj.append("text", text);
             obj.append("links", list);
-            obj.append("path", "");
+            obj.append("path", filePath.getFileName().toAbsolutePath().toString());
             obj.append("outLinks", list.size());
             obj.append("inLinks", 0);
-            obj.append("rank", 0.33);
-            obj.append("currentRank", 0.33);
+            obj.append("rank", 0);
 
             pages.insertOne(obj);
-        } else {
-                pages.updateOne(new Document("_id", filePath.getFileName().toString().hashCode()),
-                        new Document("$set", new Document("title", metadata.get("title"))));
-                pages.updateOne(new Document("_id", filePath.getFileName().toString().hashCode()),
-                        new Document("$set", new Document("description", metadata.get("description"))));
-                pages.updateOne(new Document("_id", filePath.getFileName().toString().hashCode()),
-                        new Document("$set", new Document("content-type", metadata.get("content-type"))));
-                pages.updateOne(new Document("_id", filePath.getFileName().toString().hashCode()),
-                        new Document("$set", new Document("text", text)));
-                pages.updateOne(new Document("_id", filePath.getFileName().toString().hashCode()),
-                        new Document("$set", new Document("links", list)));
-                pages.updateOne(new Document("_id", filePath.getFileName().toString().hashCode()),
-                        new Document("$set", new Document("outLinks", links.size())));
-            }
+        } 
+        
+//        else {
+//                pages.updateOne(new Document("_id", filePath.getFileName().toString().hashCode()),
+//                        new Document("$set", new Document("title", metadata.get("title"))));
+//                pages.updateOne(new Document("_id", filePath.getFileName().toString().hashCode()),
+//                        new Document("$set", new Document("description", metadata.get("description"))));
+//                pages.updateOne(new Document("_id", filePath.getFileName().toString().hashCode()),
+//                        new Document("$set", new Document("content-type", metadata.get("content-type"))));
+//                pages.updateOne(new Document("_id", filePath.getFileName().toString().hashCode()),
+//                        new Document("$set", new Document("text", text)));
+//                pages.updateOne(new Document("_id", filePath.getFileName().toString().hashCode()),
+//                        new Document("$set", new Document("links", list)));
+//                pages.updateOne(new Document("_id", filePath.getFileName().toString().hashCode()),
+//                        new Document("$set", new Document("outLinks", links.size())));
+//            }
 
-        incomingLinks(filePath.getFileName().toString(), list);
+        //incomingLinks(filePath.getFileName().toString(), list);
 
     }
 
-	//this method is similar to the tokenizing method in the crawler
-	public void index(String text, Path filePath) {
+	
+	
+	public void index2(String text, Path filePath) {
+		
+		System.out.println(filePath.getFileName().toString());
 		
 		while (tokenStopWords.hasMoreTokens())
 		{
@@ -187,37 +166,66 @@ public class RankProcessor {
           stopWordsList.add(token);
 		}
 		
+		//term : doc, tfidf
+		Map<String, Rank> map = new HashMap<String, Rank>();
+		
 		//split on non alphanumeric character to remove punctuations for now 
         String[] terms = text.split("\\W+");
+        int termCount = terms.length;
         
         for(int i = 0 ; i < terms.length; i++)
         {
         	//TODO: save i as position
-        	String term = terms[i];
+        	String term = terms[i].toLowerCase();
         	//skip term if it is a stop word 
-        	if(stopWordsList.contains(term))
+        	if( term.isEmpty() || stopWordsList.contains(term) || stopWordsList.contains(term.toLowerCase()))
         	{
-        		System.out.println("skipping: " + term);
+        		termCount--;
         		continue;
         	}
         	
         	Integer id = filePath.getFileName().toString().hashCode();
         	
-        	//fetch term from mongo
-        	Term doc = (Term) datastore.createQuery(Term.class).field("term").equal(term).get();
-        	
-            if(doc == null)
+        	Rank rank = map.get(term);
+            if(rank == null)
             {
-            	doc = new Term();
-            	doc.setTerm(term);
+            	rank = new Rank();
+            	rank.setDocId(id);
+            	map.put(term, rank);
             }
             
-            doc.addDocId(id);
+            rank.setTf(rank.getTf() + 1);
+        	
+        }
+        
+        for(String word : map.keySet())
+        {
+        	Rank rank = map.get(word);
+        	rank.setTotalTermCount(termCount);
+        	Term doc = (Term) datastore.createQuery(Term.class).field("term").equal(word).get();
+        	
+        	//Document term = index.find(eq("term", word)).first();
+        	if(doc !=null)
+        	{
+        		doc.getDocIds().add(rank);
+        	}
+        	else
+        	{
+        		doc = new Term();
+        		Set<Rank> ranks = new HashSet<Rank>();
+        		ranks.add(rank);
+        		doc.setDocIds(ranks);
+        		doc.setTerm(word);
+        		
+        	}
+        	
+//        	index.updateOne(new Document("term", word),
+//        	        new Document("$push", new Document("docIds", "East 31st Street")));
         	datastore.save(doc);
         	
         }
-
     }
+	
 	
 	/**
 	 * calculates the ranking of a term
@@ -233,7 +241,19 @@ public class RankProcessor {
 	}
 
     public void linkAnalysis(){
-        linkRank();
+    	//pass 1
+    	// for each page : pages 
+    	// outgoingLink : page.getLinks() 
+    	// pages.find(_id == outgoingLink.hashcode )
+    	//page.addIncomingLink(page._id)
+    	
+    	
+    	//pass2 
+    	// for each page : pages
+    	//calcalute rank number
+    	//update page.rank 
+    	
+    	linkRank();
     }
 
     public void resetRank(){
@@ -242,14 +262,14 @@ public class RankProcessor {
 	
 	private void calculateTfIdf(Term term)
 	{
-		for(Integer docId : term.getDocIds().keySet())
+		for(Rank doc : term.getDocIds())
 		{
-			Rank doc = term.getDocIds().get(docId);
-			double tf = (double)doc.getTf();
-			double tf_tdf = tf/term.getDocIds().size();
+			double tf = (double)doc.getTf()/(double)doc.getTotalTermCount();
+			double idf = 6050 / (double) term.getDocIds().size();
+			double tf_tdf = tf/idf;
 			
 			System.out.println("tf_tdf: " + tf_tdf);
-			doc.setTfIdf( normalized(tf_tdf, 0, 1));
+			doc.setTfIdf( tf_tdf);
 		}
 	}
     
