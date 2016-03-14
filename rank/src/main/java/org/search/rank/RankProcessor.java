@@ -84,7 +84,9 @@ public class RankProcessor {
 	
 	public void process() throws IOException
     {
-    	Files.walk(Paths.get("C:\\Users\\jwj96\\Downloads\\en\\articles")).forEach(filePath -> {
+        String path = "C:\\Users\\jwj96\\Downloads\\munged";
+        //String path = "C:\\Users\\jwj96\\Downloads\\en\\articles";
+    	Files.walk(Paths.get(path)).forEach(filePath -> {
     	    if (Files.isRegularFile(filePath)) {
     	    	try {
     	    		ByteArrayInputStream content = new ByteArrayInputStream(Files.readAllBytes(filePath));
@@ -103,7 +105,7 @@ public class RankProcessor {
 					
 					//here is a list of processing 
 					saveDocument(bodyHandler.toString(), filePath, metadata, linkHandler.getLinks());
-					index(bodyHandler.toString(), filePath);
+					//index(bodyHandler.toString(), filePath);
 					
 					String[] metadataNames = metadata.names();
 					  
@@ -173,7 +175,7 @@ public class RankProcessor {
                         new Document("$set", new Document("outLinks", links.size())));
             }
 
-        incomingLinks(filePath.getFileName().toString(), list);
+        //incomingLinks(filePath.getFileName().toString(), list);
 
     }
 
@@ -233,11 +235,13 @@ public class RankProcessor {
 	}
 
     public void linkAnalysis(){
+        set();
+        incomingLink();
         linkRank();
     }
 
-    public void resetRank(){
-        reset();
+    public void setRank(){
+        set();
     }
 	
 	private void calculateTfIdf(Term term)
@@ -266,7 +270,57 @@ public class RankProcessor {
 	 * calculates the link analysis
 	 *
 	 */
+    public void incomingLink(){
+        MongoClient mongoClient = new MongoClient( "localhost" , 27017 );
+        MongoDatabase database = mongoClient.getDatabase("local");
+        MongoCollection<org.bson.Document> pages = database.getCollection("pages");
 
+        MongoCursor<Document> cursor = pages.find().iterator();
+
+        try {
+            while(cursor.hasNext()){
+                Document obj = cursor.next();
+                String url = obj.get("url") + "";
+
+                List<String> test = new ArrayList<>();
+                test = (List<String>) obj.get("links");
+
+                for(String s: test) {
+                    String link = s.replaceAll("(\\.\\.\\/)|(articles\\/)|([a-zA-Z0-9]+\\/)|([^a-z]\\/)", "").replace("[", "").replace("]", "");
+                    int urlHash = link.hashCode();
+                    Document doc = pages.find(eq("_id", urlHash)).first();
+                    System.out.println(urlHash + " : " +  link);
+                    if(!(doc == null)){
+                        int incomingLinks = ((Number) doc.get("inLinks")).intValue() + 1;
+
+                        pages.updateOne(eq("_id", urlHash), new Document("$set", new Document("inLinks", incomingLinks)));
+                        pages.updateOne(new Document("_id", urlHash), new Document("$push", new Document("incomingLinks", url)));
+                    }
+                }
+
+                //StringTokenizer st = new StringTokenizer(obj.get("links").toString(), ", ");
+
+                /*while (st.hasMoreTokens()) {
+                    //System.out.println("Current rank: " + total);
+                    String link = st.nextToken().replaceAll("(\\.\\.\\/)|(articles\\/)|([a-zA-Z0-9]+\\/)|([^a-z]\\/)", "").replace("[", "").replace("]", "");
+                    //String link = st.nextToken();
+                    int urlHash = link.hashCode();
+                    Document doc = pages.find(eq("_id", urlHash)).first();
+                    System.out.println(urlHash + " : " +  link);
+                    if(!(doc == null)){
+                        int incomingLinks = ((Number) doc.get("inLinks")).intValue() + 1;
+
+                        pages.updateOne(eq("_id", urlHash), new Document("$set", new Document("inLinks", incomingLinks)));
+                        pages.updateOne(new Document("_id", urlHash), new Document("$push", new Document("incomingLinks", url)));
+                    }
+                }*/
+            }
+        }finally {
+
+        }
+    }
+
+    /*
     private void incomingLinks(String url, List<String> links){
         //System.out.println("\n\n\n\n\n\n IncomingLinks");
 
@@ -292,13 +346,11 @@ public class RankProcessor {
 
                 pages.updateOne(eq("_id", urlHash), new Document("$set", new Document("inLinks", incomingLinks)));
             }
-            pages.updateOne(new Document("_id", urlHash),
-                    new Document("$push", new Document("incomingLinks", url)));
         }
-    }
+    }*/
 
-    // Use to reset link rank
-	private static void reset(){
+    // Use to set link rank to initial value
+	private static void set(){
 		MongoClient mongoClient = new MongoClient( "localhost" , 27017 );
 		MongoDatabase database = mongoClient.getDatabase("local");
 		MongoCollection<org.bson.Document> pages = database.getCollection("pages");
@@ -378,8 +430,8 @@ public class RankProcessor {
 			}
 
             System.out.println("Total times ran: " + run);
-
-				cursor = pages.find().iterator();
+            // This part can be in a separate method that returns an int
+            cursor = pages.find().iterator();
 			try {
 				while (cursor.hasNext()) {
 					Document obj = cursor.next();
