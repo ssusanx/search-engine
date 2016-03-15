@@ -45,7 +45,7 @@ public class RankProcessor {
 
 	// create the Datastore connecting to the default port on the local host
 	Datastore datastore = null;
-	
+	int t = 0;
 	
 	public RankProcessor()
 	{
@@ -139,6 +139,8 @@ public class RankProcessor {
 	
 	
 	public void index2(String text, Path filePath) {
+		t += 1;
+		System.out.println(t );
 		
 		System.out.println(filePath.getFileName().toString());
 		
@@ -185,26 +187,28 @@ public class RankProcessor {
         {
         	Rank rank = map.get(word);
         	rank.setTotalTermCount(termCount);
-        	Term doc = (Term) datastore.createQuery(Term.class).field("term").equal(word).get();
+        	//Term doc = (Term) datastore.createQuery(Term.class).field("term").equal(word).get();
         	
-        	//Document term = index.find(eq("term", word)).first();
+        	Document doc = index.find(eq("term", word)).first();
         	if(doc !=null)
         	{
-        		doc.getDocIds().add(rank);
+        		index.updateOne(new Document("term", word),
+            	        new Document("$push", new Document("docIds", new Document("docId", rank.getDocId())
+            	        .append("tf", rank.getTf())
+            	        .append("totalTermCount", termCount))));
         	}
         	else
         	{
-        		doc = new Term();
+        		Term term = new Term();
         		Set<Rank> ranks = new HashSet<Rank>();
         		ranks.add(rank);
-        		doc.setDocIds(ranks);
-        		doc.setTerm(word);
+        		term.setDocIds(ranks);
+        		term.setTerm(word);
+        		datastore.save(term);
         		
         	}
         	
-//        	index.updateOne(new Document("term", word),
-//        	        new Document("$push", new Document("docIds", "East 31st Street")));
-        	datastore.save(doc);
+        	//datastore.save(doc);
         	
         }
     }
@@ -241,11 +245,11 @@ public class RankProcessor {
 		for(Rank doc : term.getDocIds())
 		{
 			double tf = (double)doc.getTf()/(double)doc.getTotalTermCount();
-			double idf = 6050 / (double) term.getDocIds().size();
+			double idf = Math.log((double)6048 / (double) term.getDocIds().size());
 			double tf_tdf = tf/idf;
 			
 			System.out.println("tf_tdf: " + tf_tdf);
-			doc.setTfIdf( tf_tdf);
+			doc.setTfIdf( normalized(tf_tdf, 0.0, 1.0 ));
 		}
 	}
     

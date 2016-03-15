@@ -3,8 +3,10 @@ package org.search.query.service;
 import static com.mongodb.client.model.Filters.eq;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -42,44 +44,34 @@ public class SearchService {
 		pages = database.getCollection("pages");
 	}
 	
-	public List<String> find(String term)
+	public List<SearchResult> find(String term)
 	{
 		
-		List<String> results = new ArrayList<String>(); 
+		List<SearchResult> results = new ArrayList<SearchResult>(); 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		Document doc = index.find(eq("term", term)).first();
 		
 		if(doc != null)
 		{
-			Map<String, Object> map = (Map<String, Object>) doc.get("docIds");
+			List<Document> list = (ArrayList<Document>) doc.get("docIds");
 			
-			for(String key : map.keySet())
+			SearchResult result = null;
+			for(Document rank : list)
 			{
-				System.out.println("key " + key);
-				Document page = pages.find(eq("_id", Integer.parseInt(key))).first();
+				System.out.println("key " + rank.get("docId"));
+				Document page = pages.find(eq("_id", rank.get("docId"))).first();
 				if(page != null)
 				{
-					results.add(page.getString("url"));
-					System.out.println("url" + page.getString("url"));
+					result = new SearchResult();
+					result.setLink(page.getString("path"));
+					result.setTitle(page.getString("title"));
+					results.add(result);
+					System.out.println("url" + page.getString("path"));
 				}
 			}
 			
-			System.out.println(gson.toJson(doc));
 		}
             
-            
-            
-//            try {
-//                while (cursor.hasNext()) {
-//                	//String json = gson.toJson(obj);
-//                    System.out.println(gson.toJson(cursor.next()));
-//                }
-//            } finally {
-//                cursor.close();
-//            }
-		
-    	String result = gson.toJson(doc);
-    	
 		return results;
 		
 	}
