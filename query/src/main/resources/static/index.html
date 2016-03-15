@@ -34,7 +34,7 @@
 								
 								<span class="input-group-btn">
 									<button type="submit" ng-click="getSearchResult(searchString)"
-										class="btn btn-md btn-warning pull-right">search</button> <!-- <a href="/search/{{searchString}}"><button class="pull-right">{{searchString}}</button></a> -->
+										class="btn btn-md btn-warning pull-right">search</button> 
 								</span>
 							</div>
 						</form>
@@ -46,7 +46,9 @@
 				</div>
 				<div class="row" ng-repeat="result in results">
 					<hr />
-					<a href="file:///{{result.link}}">{{result.title}}</a>
+					<a href="file:////Users/susansun/school/cs454-winter-2016/scripts/munged/{{result.link}}">{{result.title}}</a>
+					
+					<p> {{result.score | number:10}} = linkAnalysis: {{result.linkAnalysis | number:10}} + tfIdf: {{result.tfidf | number:10}}</p>
 				</div> 
 	
 			</div>
