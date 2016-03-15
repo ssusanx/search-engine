@@ -3,6 +3,7 @@ package org.search.query.service;
 import static com.mongodb.client.model.Filters.eq;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,9 @@ public class SearchService {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		Document doc = index.find(eq("term", term)).first();
 		
+		//Document doc = index.find(eq("term", term)).sort("doc");
+		System.out.println("find term " + term);
+		
 		if(doc != null)
 		{
 			List<Document> list = (ArrayList<Document>) doc.get("docIds");
@@ -63,16 +67,37 @@ public class SearchService {
 				if(page != null)
 				{
 					result = new SearchResult();
-					result.setLink(page.getString("path"));
+					result.setLink(page.getString("url"));
 					result.setTitle(page.getString("title"));
+					result.setLinkAnalysis(page.getDouble("currentRank"));
+					result.setTfidf(rank.getDouble("tfIdf"));
 					results.add(result);
-					System.out.println("url" + page.getString("path"));
+					
 				}
 			}
 			
 		}
-            
+        
+		weight(results);
+		Collections.sort((List<SearchResult>) results);
+		
 		return results;
+		
+	}
+	
+	private void weight(List<SearchResult> docs)
+	{
+		for(SearchResult res : docs )
+		{
+			double total = res.getTfidf() * (double)0.5 + res.getLinkAnalysis() * (double)0.5;
+			res.setTfidf(res.getTfidf() * (double)0.5);
+			res.setLinkAnalysis(res.getLinkAnalysis() * (double)0.5);
+			System.out.println("url" + res.getLink());
+			System.out.println("tfidf" + res.getTfidf());
+			System.out.println("linkAnalysis" + res.getLinkAnalysis());
+			System.out.println("score: " + total);
+			res.setScore(total);
+		}
 		
 	}
 	
@@ -81,5 +106,5 @@ public class SearchService {
 	{
 		mongoClient.close();
 	}
-
+	
 }

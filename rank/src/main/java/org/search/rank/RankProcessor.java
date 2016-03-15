@@ -90,7 +90,7 @@ public class RankProcessor {
                     //here is a list of processing
                     saveDocument(bodyHandler.toString(), filePath, metadata, linkHandler.getLinks());
                     //index2(bodyHandler.toString(), filePath);
-                    System.out.println("Runnings");
+
                 } catch (Exception e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
@@ -109,7 +109,8 @@ public class RankProcessor {
 	 */
 	private void saveDocument(String text, Path filePath, Metadata metadata, List<Link> links) 
 	{
-        List<String> list = new ArrayList<String>();
+		System.out.println(filePath.getFileName().toString());
+		List<String> list = new ArrayList<String>();
         for (Link link : links) {
         	String uri = link.getUri();
 			if(!uri.isEmpty() && !uri.startsWith("http") && !uri.startsWith("../") && uri.endsWith(".html"))
@@ -129,7 +130,7 @@ public class RankProcessor {
             obj.append("content-type", metadata.get("content-type"));
             obj.append("text", text);
             obj.append("links", list);
-            obj.append("path", filePath.getFileName().toAbsolutePath().toString());
+            obj.append("path", filePath.getFileName().toUri().toString());
             obj.append("outLinks", list.size());
             obj.append("inLinks", 0);
             obj.append("rank", 0);
@@ -222,16 +223,47 @@ public class RankProcessor {
 	 * 
 	 */
 	public void rank() {
-		/*List<Term> terms = datastore.createQuery(Term.class).asList();
-		for(Term term : terms)
+		List<Term> terms = datastore.createQuery(Term.class).asList();
+        double max = 0;
+		double min = 1;
+
+        for(Term term : terms)
 		{
 			calculateTfIdf(term);
 			datastore.save(term);
 		}
-        */
-        linkAnalysis();
 
+		// get max and min
+		for(Term term : terms)
+		{
+			for(Rank rank : term.getDocIds())
+			{
+				if(min > rank.getTfIdf())
+				{
+					min = rank.getTfIdf();
+				}else if(max < rank.getTfIdf())
+				{
+					max = rank.getTfIdf();
+				}
+			}
+		}
+
+		System.out.println("min" + min);
+		System.out.println("max" + max);
+
+		for(Term term : terms)
+		{
+			for(Rank rank : term.getDocIds())
+			{
+				rank.setTfIdf( normalized(rank.getTfIdf(), min, max ));
+			}
+			datastore.save(term);
+		}
+
+        linkAnalysis();
         normalizedRank();
+	}
+
 
 	}
     public void linkAnalysis(){
@@ -270,11 +302,14 @@ public class RankProcessor {
 		for(Rank doc : term.getDocIds())
 		{
 			double tf = (double)doc.getTf()/(double)doc.getTotalTermCount();
-			double idf = Math.log((double)6048 / (double) term.getDocIds().size());
+			double idf = Math.log( (double)6048 / (double) term.getDocIds().size());
 			double tf_tdf = tf/idf;
 			
+			System.out.println("df: " + term.getDocIds().size());
+			System.out.println("term: " + term.getTerm());
+			
 			System.out.println("tf_tdf: " + tf_tdf);
-			doc.setTfIdf( normalized(tf_tdf, 0.0, 1.0 ));
+			doc.setTfIdf( tf_tdf);
 		}
 	}
     
@@ -396,8 +431,8 @@ public class RankProcessor {
         int run = 0;
 		double totalDone = 0;
 		long collectionSize = pages.count();
-		System.out.println("Before loop: " + (totalDone / collectionSize));
-		while(!((totalDone / collectionSize) > 0.75)){
+		//System.out.println("Before loop: " + (totalDone / collectionSize));
+		while(!((totalDone / collectionSize) > 0.50)){
 		//for(int i = 0; i < 3; i++){
             totalDone = 0;
 			cursor = pages.find().iterator();
