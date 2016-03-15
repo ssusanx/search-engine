@@ -263,9 +263,7 @@ public class RankProcessor {
         linkAnalysis();
         normalizedRank();
 	}
-
-
-	}
+    
     public void linkAnalysis(){
         set();
         incomingLink();
