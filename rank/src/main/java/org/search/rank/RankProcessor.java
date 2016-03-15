@@ -221,6 +221,8 @@ public class RankProcessor {
 			calculateTfIdf(term);
 			datastore.save(term);
 		}
+
+        linkAnalysis();
 	}
 
     public void linkAnalysis(){
