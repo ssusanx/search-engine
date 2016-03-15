@@ -33,9 +33,12 @@ public class Application {
         }else if(cmd.hasOption("l")){
             RankProcessor rankProcessor = new RankProcessor();
             rankProcessor.linkAnalysis();
-        }else if(cmd.hasOption("u")){
+        }else if(cmd.hasOption("s")){
             RankProcessor rankProcessor = new RankProcessor();
-            rankProcessor.resetRank();
+            rankProcessor.setRank();
+        }else if(cmd.hasOption("t")){
+            RankProcessor rankProcessor = new RankProcessor();
+            //rankProcessor.link();
         }
     }
     
@@ -46,7 +49,8 @@ public class Application {
         options.addOption("i", false, "index");
         options.addOption("r", false, "rank");
         options.addOption("l", false, "link");
-        options.addOption("u", false, "reset");
+        options.addOption("s", false, "set");
+        options.addOption("t", false, "test");
 
         return options;
     }
