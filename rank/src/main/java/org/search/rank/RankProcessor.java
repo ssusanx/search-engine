@@ -68,7 +68,7 @@ public class RankProcessor {
 	
 	public void process() throws IOException
     {
-    	Files.walk(Paths.get("/Users/susansun/school/cs454-winter-2016/scripts/munged")).forEach(filePath -> {
+    	Files.walk(Paths.get("C:\\Users\\jwj96\\Downloads\\munged")).forEach(filePath -> {
     	    if (Files.isRegularFile(filePath)) {
     	    	try {
     	    		ByteArrayInputStream content = new ByteArrayInputStream(Files.readAllBytes(filePath));
@@ -86,7 +86,7 @@ public class RankProcessor {
 					htmlparser.parse(content, teeHandler, metadata, pcontext);
 					
 					//here is a list of processing 
-					//saveDocument(bodyHandler.toString(), filePath, metadata, linkHandler.getLinks());
+					saveDocument(bodyHandler.toString(), filePath, metadata, linkHandler.getLinks());
 					index2(bodyHandler.toString(), filePath);
 					
 				} catch (Exception e) {
@@ -109,8 +109,7 @@ public class RankProcessor {
 		List<String> list = new ArrayList<String>();
         for (Link link : links) {
         	String uri = link.getUri();
-
-        	if(!uri.isEmpty() && !uri.startsWith("http") && !uri.startsWith("../") && uri.endsWith(".html"))
+			if(!uri.isEmpty() && !uri.startsWith("http") && !uri.startsWith("../") && uri.endsWith(".html"))
         	{
         		list.add(uri);
         	}
@@ -301,8 +300,8 @@ public class RankProcessor {
                 obj.append("_id", link.hashCode());
                 obj.append("url", link);
                 obj.append("inLinks", 1);
-                obj.append("rank", 0.33);
-                obj.append("currentRank", 0.33);
+                obj.append("rank", 0);
+                obj.append("currentRank", 0);
                 pages.insertOne(obj);
 
             }else {
@@ -330,7 +329,6 @@ public class RankProcessor {
         try {
 			while(cursor.hasNext()){
 				Document obj = cursor.next();
-
 				pages.updateOne(eq("_id", obj.get("_id")), new Document("$set", new Document("rank", rank)));
 				pages.updateOne(eq("_id", obj.get("_id")), new Document("$set", new Document("currentRank", rank )));
 			}
