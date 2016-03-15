@@ -26,6 +26,8 @@ import org.apache.tika.sax.TeeContentHandler;
 import org.bson.Document;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
+import com.mongodb.client.model.Sorts;
+
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -42,8 +44,8 @@ public class RankProcessor {
 	private static StringTokenizer tokenStopWords;
 	private static List<String> stopWordsList = null;
     private static Morphia morphia = null;
-
-	// create the Datastore connecting to the default port on the local host
+    private static HashMap<Integer, ArrayList<String>> linkMap;
+    // create the Datastore connecting to the default port on the local host
 	Datastore datastore = null;
 	int t = 0;
 	
@@ -63,12 +65,12 @@ public class RankProcessor {
 		stopWordsList = new ArrayList<String>();
         Document words = stopWords.find().first();
         tokenStopWords = new StringTokenizer(words.get("words").toString(), ",");
-        
-	}
+        linkMap = new HashMap<Integer, ArrayList<String>>();
+    }
 
     public void process() throws IOException
     {
-        Files.walk(Paths.get("/Users/susansun/school/cs454-winter-2016/scripts/munged")).forEach(filePath -> {
+        Files.walk(Paths.get("C:\\Users\\jwj96\\Downloads\\munged")).forEach(filePath -> {
             if (Files.isRegularFile(filePath)) {
                 try {
                     ByteArrayInputStream content = new ByteArrayInputStream(Files.readAllBytes(filePath));
@@ -87,8 +89,8 @@ public class RankProcessor {
 
                     //here is a list of processing
                     saveDocument(bodyHandler.toString(), filePath, metadata, linkHandler.getLinks());
-                    index2(bodyHandler.toString(), filePath);
-
+                    //index2(bodyHandler.toString(), filePath);
+                    System.out.println("Runnings");
                 } catch (Exception e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
@@ -107,12 +109,13 @@ public class RankProcessor {
 	 */
 	private void saveDocument(String text, Path filePath, Metadata metadata, List<Link> links) 
 	{
-		List<String> list = new ArrayList<String>();
+        List<String> list = new ArrayList<String>();
         for (Link link : links) {
         	String uri = link.getUri();
 			if(!uri.isEmpty() && !uri.startsWith("http") && !uri.startsWith("../") && uri.endsWith(".html"))
         	{
         		list.add(uri);
+
         	}
         }
 
@@ -219,21 +222,43 @@ public class RankProcessor {
 	 * 
 	 */
 	public void rank() {
-		List<Term> terms = datastore.createQuery(Term.class).asList();
+		/*List<Term> terms = datastore.createQuery(Term.class).asList();
 		for(Term term : terms)
 		{
 			calculateTfIdf(term);
 			datastore.save(term);
 		}
-
+        */
         linkAnalysis();
-	}
 
+        normalizedRank();
+
+	}
     public void linkAnalysis(){
         set();
         incomingLink();
         linkRank();
+    }
 
+    private void normalizedRank(){
+        MongoCursor<Document> cursor = pages.find().iterator();
+        double min=Double.MAX_VALUE;
+        double max=Double.MIN_VALUE;
+
+        //get min and max ranks
+        while(cursor.hasNext()){
+            double current = (Double) cursor.next().get("rank");
+                if (current > max) max=current;
+                if (current < min ) min=current;
+        }
+
+        cursor = pages.find().iterator();
+        while(cursor.hasNext()){
+            Document obj = cursor.next();
+            double rank = ((Number) obj.get("rank")).doubleValue();
+            double normalizedRank = normalized(rank, min, max);
+            pages.updateOne(eq("_id", obj.get("_id")), new Document("$set", new Document("normalizedRank", normalizedRank)));
+        }
     }
 
     public void setRank(){
@@ -282,7 +307,7 @@ public class RankProcessor {
                 test = (List<String>) obj.get("links");
 
                 for(String s: test) {
-                    String link = s.replaceAll("(\\.\\.\\/)|(articles\\/)|([a-zA-Z0-9]+\\/)|([^a-z]\\/)", "").replace("[", "").replace("]", "");
+                    String link = s;//.replaceAll("(\\.\\.\\/)|(articles\\/)|([a-zA-Z0-9]+\\/)|([^a-z]\\/)", "").replace("[", "").replace("]", "");
                     int urlHash = link.hashCode();
                     Document doc = pages.find(eq("_id", urlHash)).first();
                     System.out.println(urlHash + " : " +  link);
@@ -354,7 +379,7 @@ public class RankProcessor {
 		MongoCursor<Document> cursor = pages.find().iterator();
 
 		double rank = 1.0 / pages.count();
-        System.out.println(rank);
+        System.out.println("Setting rank to: " + rank);
         try {
 			while(cursor.hasNext()){
 				Document obj = cursor.next();
