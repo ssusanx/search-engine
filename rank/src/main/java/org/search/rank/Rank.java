@@ -12,6 +12,7 @@ public class Rank {
 	private double tfIdf;
 	private int tf;
 	private int totalTermCount;
+	private double normalized;
 	
 	public ObjectId getId() {
 		return id;
@@ -67,6 +68,12 @@ public class Rank {
 		} else if (!docId.equals(other.docId))
 			return false;
 		return true;
+	}
+	public double getNormalized() {
+		return normalized;
+	}
+	public void setNormalized(double normalized) {
+		this.normalized = normalized;
 	}
 
 }

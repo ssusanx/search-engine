@@ -69,7 +69,7 @@ public class SearchService {
 					result = new SearchResult();
 					result.setLink(page.getString("url"));
 					result.setTitle(page.getString("title"));
-					result.setLinkAnalysis(page.getDouble("currentRank"));
+					result.setLinkAnalysis(page.getDouble("normalizedRank"));
 					result.setTfidf(rank.getDouble("tfIdf"));
 					results.add(result);
 					
@@ -89,9 +89,11 @@ public class SearchService {
 	{
 		for(SearchResult res : docs )
 		{
-			double total = res.getTfidf() * (double)0.5 + res.getLinkAnalysis() * (double)0.5;
-			res.setTfidf(res.getTfidf() * (double)0.5);
-			res.setLinkAnalysis(res.getLinkAnalysis() * (double)0.5);
+			double weightedTfIdf = res.getTfidf() * (double)0.5;
+			double weightedLink = res.getLinkAnalysis() * (double)0.5;
+			double total = weightedTfIdf + weightedLink;
+			res.setTfidf(weightedTfIdf);
+			res.setLinkAnalysis(weightedLink);
 			System.out.println("url" + res.getLink());
 			System.out.println("tfidf" + res.getTfidf());
 			System.out.println("linkAnalysis" + res.getLinkAnalysis());

@@ -88,8 +88,8 @@ public class RankProcessor {
                     htmlparser.parse(content, teeHandler, metadata, pcontext);
 
                     //here is a list of processing
-                    saveDocument(bodyHandler.toString(), filePath, metadata, linkHandler.getLinks());
-                    //index2(bodyHandler.toString(), filePath);
+                    //saveDocument(bodyHandler.toString(), filePath, metadata, linkHandler.getLinks());
+                    index2(bodyHandler.toString(), filePath);
 
                 } catch (Exception e) {
                     // TODO Auto-generated catch block
@@ -224,13 +224,12 @@ public class RankProcessor {
 	 */
 	public void rank() {
 		List<Term> terms = datastore.createQuery(Term.class).asList();
-        double max = 0;
-		double min = 1;
+        double max = Double.MIN_VALUE;
+		double min = Double.MAX_VALUE;
 
         for(Term term : terms)
 		{
 			calculateTfIdf(term);
-			datastore.save(term);
 		}
 
 		// get max and min
@@ -255,7 +254,7 @@ public class RankProcessor {
 		{
 			for(Rank rank : term.getDocIds())
 			{
-				rank.setTfIdf( normalized(rank.getTfIdf(), min, max ));
+				rank.setNormalized( normalized(rank.getTfIdf(), min, max ));
 			}
 			datastore.save(term);
 		}
