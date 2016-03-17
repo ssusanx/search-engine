@@ -67,8 +67,17 @@ public class RankProcessor {
         tokenStopWords = new StringTokenizer(words.get("words").toString(), ",");
         linkMap = new HashMap<Integer, ArrayList<String>>();
     }
+	
+	/**
+	 * this method could either index from the docs on the file system or the texts in mongo
+	 * depends on the size of the pages
+	 */
+	public void process()
+	{
+		
+	}
 
-    public void process() throws IOException
+    public void processLocal() throws IOException
     {
         Files.walk(Paths.get("C:\\Users\\jwj96\\Downloads\\munged")).forEach(filePath -> {
             if (Files.isRegularFile(filePath)) {
@@ -89,7 +98,7 @@ public class RankProcessor {
 
                     //here is a list of processing
                     //saveDocument(bodyHandler.toString(), filePath, metadata, linkHandler.getLinks());
-                    index2(bodyHandler.toString(), filePath);
+                    index(bodyHandler.toString(), filePath);
 
                 } catch (Exception e) {
                     // TODO Auto-generated catch block
@@ -139,10 +148,8 @@ public class RankProcessor {
 
         }
     }
-
 	
-	
-	public void index2(String text, Path filePath) {
+	public void index(String text, Path filePath) {
 		t += 1;
 		System.out.println(t );
 		
