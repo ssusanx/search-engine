@@ -101,17 +101,8 @@ public class Crawler extends WebCrawler{
         System.out.println("Visiting URL: " + url);
         Boolean isExtract = (Boolean)getMyController().getCustomData();
         if(isExtract)
+        {
         	extract(page);
-
-        //System.out.println("\n\n\nVisited Sites:");
-
-        int counter = 0;
-        for (Integer name: visitedSite.keySet()){
-            counter += 1;
-            String key = name.toString();
-            String value = visitedSite.get(name).toString();
-            //System.out.println(counter + ": " + key + " " + value);
-            //System.out.println("count: " + counter);
         }
     }
 
