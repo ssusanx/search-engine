@@ -129,7 +129,7 @@ public class RankProcessor {
         	}
         }
 
-        Document doc = pages.find(eq("path", filePath.getFileName().toString().hashCode())).first();
+        Document doc = pages.find(eq("_id", filePath.getFileName().toString().hashCode())).first();
         if(doc == null) {
             Document obj = new Document();
             obj.append("_id", filePath.getFileName().toString().hashCode());
