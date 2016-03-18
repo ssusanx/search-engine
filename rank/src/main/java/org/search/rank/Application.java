@@ -23,7 +23,7 @@ public class Application {
         	//Indexer indexer = new Indexer();
         	//indexer.index();
             RankProcessor rankProcessor = new RankProcessor();
-            rankProcessor.process();
+            rankProcessor.processLocal();
         }
         else if(cmd.hasOption("r") )
         {

@@ -60,8 +60,8 @@ public class RankProcessor {
 		
 		database = mongoClient.getDatabase("local");
 		stopWords = database.getCollection("stopWords");
-		index = database.getCollection("index");
-		pages = database.getCollection("pages");
+		index = database.getCollection("term");
+		pages = database.getCollection("document");
 		stopWordsList = new ArrayList<String>();
         Document words = stopWords.find().first();
         tokenStopWords = new StringTokenizer(words.get("words").toString(), ",");
@@ -74,12 +74,12 @@ public class RankProcessor {
 	 */
 	public void process()
 	{
-		
+		pages.find().iterator();
 	}
 
     public void processLocal() throws IOException
     {
-        Files.walk(Paths.get("C:\\Users\\jwj96\\Downloads\\munged")).forEach(filePath -> {
+        Files.walk(Paths.get("/Users/susansun/susan/search-engine/search/html")).forEach(filePath -> {
             if (Files.isRegularFile(filePath)) {
                 try {
                     ByteArrayInputStream content = new ByteArrayInputStream(Files.readAllBytes(filePath));
@@ -129,7 +129,7 @@ public class RankProcessor {
         	}
         }
 
-        Document doc = pages.find(eq("_id", filePath.getFileName().toString().hashCode())).first();
+        Document doc = pages.find(eq("path", filePath.getFileName().toString().hashCode())).first();
         if(doc == null) {
             Document obj = new Document();
             obj.append("_id", filePath.getFileName().toString().hashCode());

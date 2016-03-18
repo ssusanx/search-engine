@@ -9,6 +9,7 @@ public class SearchResult implements Comparable<SearchResult>{
 	private double tfidf;
 	private double linkAnalysis;
 	private double score;
+	private double similarity;
 	
 	public String getTitle() {
 		return title;
@@ -49,6 +50,12 @@ public class SearchResult implements Comparable<SearchResult>{
 			return -1;
 		else
 			return 0;
+	}
+	public double getSimilarity() {
+		return similarity;
+	}
+	public void setSimilarity(double similarity) {
+		this.similarity = similarity;
 	}
 
 }

@@ -52,12 +52,12 @@ public class Application {
     private static void crawlSites(int depth, String url, boolean isExtract){
         String crawlStorageFolder = "/Users/susansun/susan/storage";//"C:\\Users\\jwj96\\Documents\\Classes\\storage";
 
-        int numberOfCrawlers = 1;
+        int numberOfCrawlers = 10;
 
         CrawlConfig config = new CrawlConfig();
         config.setCrawlStorageFolder(crawlStorageFolder);
         config.setMaxDepthOfCrawling(depth);
-        config.setMaxPagesToFetch(200);
+        config.setMaxPagesToFetch(10000);
         // config.setResumableCrawling(true);
 
         /*
@@ -65,6 +65,7 @@ public class Application {
          */
         PageFetcher pageFetcher = new PageFetcher(config);
         RobotstxtConfig robotstxtConfig = new RobotstxtConfig();
+        
         RobotstxtServer robotstxtServer = new RobotstxtServer(robotstxtConfig, pageFetcher);
         CrawlController controller = null;
         try {

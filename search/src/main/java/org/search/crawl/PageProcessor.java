@@ -31,6 +31,7 @@ import com.mongodb.client.MongoDatabase;
 
 import edu.uci.ics.crawler4j.crawler.Page;
 import edu.uci.ics.crawler4j.parser.HtmlParseData;
+import edu.uci.ics.crawler4j.parser.TextParseData;
 import edu.uci.ics.crawler4j.url.WebURL;
 
 public class PageProcessor {
@@ -88,6 +89,7 @@ public class PageProcessor {
 		
 		if (page.getParseData() instanceof HtmlParseData) {
             HtmlParseData htmlParseData = (HtmlParseData) page.getParseData();
+            
             Map<String, String> metatags = htmlParseData.getMetaTags();
             
             String text = htmlParseData.getText();
@@ -98,16 +100,17 @@ public class PageProcessor {
             	list.add(link.getURL());
             }
 
-            String path = download(page);
+            String parts[] = url.split("data/");
+            url = parts[1];
+            String path = download(url, text);
             System.out.println("Path: " + path);
             
             doc.append("_id", url.toLowerCase().hashCode());
             doc.append("url", url);
-            doc.append("hash", url.toLowerCase().hashCode());
             doc.append("title", metatags.get("title"));
             doc.append("description", metatags.get("description"));
             doc.append("content-type", metatags.get("content-type"));
-            doc.append("text", text);
+            doc.append("text", htmlParseData.getHtml());
             doc.append("links", list);
             doc.append("type", DocumentType.TEXT.toString());
             doc.append("path", path);
@@ -118,6 +121,9 @@ public class PageProcessor {
             // Save images from url
             //getMediaFromUrl(url);
 
+        }else if(page.getParseData() instanceof TextParseData)
+        {
+        	
         }
 		
 		pages.insertOne(doc);
@@ -131,16 +137,6 @@ public class PageProcessor {
 	{
 		
         
-	}
-	
-	/**
-	 * download a page to the file system
-	 * @param page
-	 * @return the path to the file
-	 */
-	public String download(Page page)
-	{
-		return null;
 	}
 	
 	private void getMediaFromUrl(String url) {
@@ -160,14 +156,22 @@ public class PageProcessor {
         }
     }
 	
-	private String rawHTML(String url, String text) {
+	/**
+	 * download a page to the file system
+	 * @param page
+	 * @return the path to the file
+	 */
+	private String download(String url, String text) {
         // Remove special characters that windows and OSX don't allow in file names
-        url = url.replaceAll("[\\/:*?\"<>|.]*", "");
+        //url = url.replaceAll("[\\/:*?\"<>|.]*", "");
         //System.out.println("New URL: " + url.toLowerCase());
 
-        createDirectory("html");
+        createDirectoryIfNotExist("html");
+        
+        
+        //String parts[] = url.split("/data/");
 
-        File file = new File("html/" + url.toLowerCase()+".txt");
+        File file = new File("html/" + url);
 
         if(file.exists()){
             // Maybe change it to check when the file was last updated and update file if older than n days.
@@ -188,7 +192,7 @@ public class PageProcessor {
         return file.getAbsolutePath();
     }
 
-    private void createDirectory(String dirName){
+    private void createDirectoryIfNotExist(String dirName){
         File dir = new File(dirName);
         if(!dir.exists()){
             System.out.println("Creating directory: " + dir.getAbsolutePath());
@@ -201,7 +205,7 @@ public class PageProcessor {
         InputStream in;
         OutputStream out;
 
-        createDirectory(folder);
+        createDirectoryIfNotExist(folder);
 
         String ext = imageUrl.substring(imageUrl.lastIndexOf('.'));
         String fileName = imageUrl.substring(imageUrl.lastIndexOf("/"));

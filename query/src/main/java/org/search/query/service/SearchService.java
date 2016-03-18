@@ -5,6 +5,7 @@ import static com.mongodb.client.model.Filters.eq;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -46,39 +47,63 @@ public class SearchService {
 		pages = database.getCollection("pages");
 	}
 	
-	public List<SearchResult> find(String term)
+	public List<SearchResult> find(String query)
 	{
-		
 		List<SearchResult> results = new ArrayList<SearchResult>(); 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		Document doc = index.find(eq("term", term)).first();
+		String[] terms = query.split(" ");
 		
-		//Document doc = index.find(eq("term", term)).sort("doc");
-		System.out.println("find term " + term);
 		
-		if(doc != null)
+		for(String term : terms)
 		{
-			List<Document> list = (ArrayList<Document>) doc.get("docIds");
 			
-			SearchResult result = null;
-			for(Document rank : list)
+			double tfIdf = calculateTfIdf(1.0/ terms.length, calculateIdf(term));
+			Document doc = index.find(eq("term", term)).first();
+			
+			System.out.println("find term " + term);
+			
+			if(doc != null)
 			{
-				System.out.println("key " + rank.get("docId"));
-				Document page = pages.find(eq("_id", rank.get("docId"))).first();
-				if(page != null)
+				List<Document> list = (ArrayList<Document>) doc.get("docIds");
+				
+				SearchResult result = null;
+				for(Document rank : list)
 				{
-					result = new SearchResult();
-					result.setLink(page.getString("url"));
-					result.setTitle(page.getString("title"));
-					result.setLinkAnalysis(page.getDouble("normalizedRank"));
-					result.setTfidf(rank.getDouble("tfIdf"));
-					results.add(result);
-					
+					//System.out.println("key " + rank.get("docId"));
+					Document page = pages.find(eq("_id", rank.get("docId"))).first();
+					if(page != null)
+					{
+						result = new SearchResult();
+						result.setLink(page.getString("url"));
+						result.setTitle(page.getString("title"));
+						result.setLinkAnalysis(page.getDouble("normalizedRank"));
+						result.setTfidf(rank.getDouble("tfIdf"));
+						results.add(result);
+						
+					}
 				}
+				
 			}
-			
 		}
         
+		double[] d = new double[results.size()];
+		double[] q = new double[terms.length];
+		
+		for(int i= 0 ; i < results.size(); i++)
+		{
+			d[i] = results.get(i).getTfidf();
+		}
+		
+		for(int i= 0 ; i < q.length; i++)
+		{
+			q[i] = calculateIdf(terms[i]);
+		}
+		
+		for(SearchResult r : results)
+		{
+			r.setSimilarity(sim(d, q));
+		}
+		
 		weight(results);
 		Collections.sort((List<SearchResult>) results);
 		
@@ -90,15 +115,17 @@ public class SearchService {
 	{
 		for(SearchResult res : docs )
 		{
-			double weightedTfIdf = res.getTfidf() * (double)0.5;
-			double weightedLink = res.getLinkAnalysis() * (double)0.5;
-			double total = weightedTfIdf + weightedLink;
+			double weightedTfIdf = res.getTfidf() * (double)0.3;
+			double weightedSim = res.getTfidf() * (double)0.5;
+			double weightedLink = res.getLinkAnalysis() * (double)0.2;
+			double total = weightedTfIdf + weightedLink + weightedSim;
 			res.setTfidf(weightedTfIdf);
 			res.setLinkAnalysis(weightedLink);
-			System.out.println("url" + res.getLink());
-			System.out.println("tfidf" + res.getTfidf());
-			System.out.println("linkAnalysis" + res.getLinkAnalysis());
-			System.out.println("score: " + total);
+			
+//			System.out.println("url" + res.getLink());
+//			System.out.println("tfidf" + res.getTfidf());
+//			System.out.println("linkAnalysis" + res.getLinkAnalysis());
+//			System.out.println("score: " + total);
 			res.setScore(total);
 		}
 		
@@ -109,11 +136,30 @@ public class SearchService {
 	{
 		mongoClient.close();
 	}
+	
+	/**
+	 * 
+	 * @param d
+	 * @param q
+	 */
+	public double calculateTfIdf(double tf, double idf)
+	{
+		return tf/idf;
+	}
+	
+	public double calculateIdf(String term)
+	{
+		
+		Document doc = index.find(eq("term", term)).first();
+		List<Document> docIds = (List<Document>) doc.get("docIds");
+		double idf = Math.log( (double)6048 / docIds.size());
+		return idf;
+	}
 
 	/*
 	* Vector Space
 	*/
-	public static void sim(double[] d,double[] q){
+	public static double sim(double d[],double q[]){
 		//numerator
 		double numerator = numerator(d, q);
 		System.out.println("Numerator: " + numerator);
@@ -130,6 +176,7 @@ public class SearchService {
 		sim = Double.parseDouble(df.format(sim));
 
 		System.out.println("Sim: " + sim);
+		return sim;
 	}
 
 	/*
