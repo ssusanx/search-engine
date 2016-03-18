@@ -2,6 +2,7 @@ package org.search.query.service;
 
 import static com.mongodb.client.model.Filters.eq;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -108,5 +109,69 @@ public class SearchService {
 	{
 		mongoClient.close();
 	}
-	
+
+	/*
+	* Vector Space
+	*/
+	public static void sim(double[] d,double[] q){
+		//numerator
+		double numerator = numerator(d, q);
+		System.out.println("Numerator: " + numerator);
+
+		// magnitude of d
+		double magD = magnitude(d);
+		System.out.println("mag D:" + magD);
+		// magnitude of q
+		double magQ = magnitude(q);
+		System.out.println("mag Q:" + magQ);
+
+		double sim = numerator / (Math.sqrt(magD * magQ));
+		DecimalFormat df = new DecimalFormat("#.#########");
+		sim = Double.parseDouble(df.format(sim));
+
+		System.out.println("Sim: " + sim);
+	}
+
+	/*
+	 * Calculate magnitude of a vector
+	 */
+	public static double magnitude(double[] arr){
+		double[] magArr = new double[arr.length];
+
+		for(int i = 0; i < arr.length; i++){
+			magArr[i] = Math.pow(arr[i], 2);
+		}
+
+		double mag = 0;
+		for(int i = 0; i < arr.length; i++){
+			mag += magArr[i];
+		}
+
+		DecimalFormat df = new DecimalFormat("#.#########");
+		mag = Double.parseDouble(df.format(mag));
+
+		return mag;
+	}
+
+	/*
+	 * Calculate numerator
+	 */
+	public static double numerator(double[] vec, double[] vec2){
+		int length = vec.length;
+
+		// Store vec x vec2
+		double[] arr = new double[length];
+
+		// multiple D and Q
+		for(int i = 0; i < length; i++){
+			arr[i] = (vec[i] * vec2[i]);
+		}
+
+		double num = 0;
+		for(int i = 0; i < length; i++){
+			num += arr[i];
+		}
+
+		return num;
+	}
 }
