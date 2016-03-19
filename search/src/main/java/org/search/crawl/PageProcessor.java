@@ -102,7 +102,7 @@ public class PageProcessor {
 
             String parts[] = url.split("data/");
             url = parts[1];
-            String path = download(url, text);
+            String path = download(url, page);
             System.out.println("Path: " + path);
             
             doc.append("_id", url.toLowerCase().hashCode());
@@ -161,16 +161,14 @@ public class PageProcessor {
 	 * @param page
 	 * @return the path to the file
 	 */
-	private String download(String url, String text) {
+	private String download(String url, Page page) {
         // Remove special characters that windows and OSX don't allow in file names
         //url = url.replaceAll("[\\/:*?\"<>|.]*", "");
         //System.out.println("New URL: " + url.toLowerCase());
 
         createDirectoryIfNotExist("html");
+        String text = new String(page.getContentData());
         
-        
-        //String parts[] = url.split("/data/");
-
         File file = new File("html/" + url);
 
         if(file.exists()){

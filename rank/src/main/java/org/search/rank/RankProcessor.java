@@ -65,6 +65,12 @@ public class RankProcessor {
 		stopWordsList = new ArrayList<String>();
         Document words = stopWords.find().first();
         tokenStopWords = new StringTokenizer(words.get("words").toString(), ",");
+        
+        while (tokenStopWords.hasMoreTokens())
+		{
+          String token = tokenStopWords.nextToken().replaceAll("\\s","").replaceAll("\\[", "").replaceAll("\\]", "");
+          stopWordsList.add(token);
+		}
         linkMap = new HashMap<Integer, ArrayList<String>>();
     }
 	
@@ -152,21 +158,13 @@ public class RankProcessor {
 	public void index(String text, Path filePath) {
 		t += 1;
 		System.out.println(t );
-		
 		System.out.println(filePath.getFileName().toString());
-		
-		while (tokenStopWords.hasMoreTokens())
-		{
-          String token = tokenStopWords.nextToken().replaceAll("\\s","");
-
-          stopWordsList.add(token);
-		}
 		
 		//term : doc, tfidf
 		Map<String, Rank> map = new HashMap<String, Rank>();
 		
 		//split on non alphanumeric character to remove punctuations for now 
-        String[] terms = text.split("\\W+");
+        String[] terms = text.split("\\W+|\\d");
         int termCount = terms.length;
         
         for(int i = 0 ; i < terms.length; i++)

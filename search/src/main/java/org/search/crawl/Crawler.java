@@ -60,7 +60,10 @@ public class Crawler extends WebCrawler{
 	@Override
     public boolean shouldVisit(Page referringPage, WebURL url) {
 		
-        Integer docId = url.getURL().toLowerCase().hashCode();
+		String[] parts = url.getURL().toLowerCase().split("/data/");
+		if(parts.length ==1)
+			return true;
+        Integer docId = parts[1].hashCode();
         return documents.find(eq("_id", docId)).first() == null;
 
     }
