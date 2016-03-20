@@ -107,7 +107,7 @@ public class PageProcessor {
             
             doc.append("_id", url.toLowerCase().hashCode());
             doc.append("url", url);
-            doc.append("title", metatags.get("title"));
+            doc.append("title", metatags.get("dc:title"));
             doc.append("description", metatags.get("description"));
             doc.append("content-type", metatags.get("content-type"));
             doc.append("text", htmlParseData.getHtml());

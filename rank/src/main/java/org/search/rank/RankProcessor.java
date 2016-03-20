@@ -240,10 +240,15 @@ public class RankProcessor {
 		// get max and min
 		for(Term term : terms)
 		{
+			
 			for(Rank rank : term.getDocIds())
 			{
-				if(min > rank.getTfIdf())
-					min = rank.getTfIdf();
+				if(term.getDocIds().size() != 1)
+				{
+					if(min > rank.getTfIdf())
+						min = rank.getTfIdf();
+				}
+				
 				else if(max < rank.getTfIdf())
 					max = rank.getTfIdf();
 			}
@@ -332,16 +337,28 @@ public class RankProcessor {
             while(cursor.hasNext()){
                 Document obj = cursor.next();
                 String url = obj.get("url") + "";
+                if(url.contains("/data/"))
+                {
+                	String parts[] = url.trim().split("/data/");
+                    url = parts[1];
+                }
 
-                List<String> test = new ArrayList<>();
-                test = (List<String>) obj.get("links");
+                List<String> links = new ArrayList<>();
+                links = (List<String>) obj.get("links");
 
-                for(String s: test) {
-                    String link = s;//.replaceAll("(\\.\\.\\/)|(articles\\/)|([a-zA-Z0-9]+\\/)|([^a-z]\\/)", "").replace("[", "").replace("]", "");
+                for(String link: links) {
+                    //String link = s;//.replaceAll("(\\.\\.\\/)|(articles\\/)|([a-zA-Z0-9]+\\/)|([^a-z]\\/)", "").replace("[", "").replace("]", "");
+                    
+                    if(link.contains("/data/"))
+                    {
+                    	String parts[] = link.split("/data/");
+                        link = parts[1];
+                    }
+                    
                     int urlHash = link.hashCode();
                     Document doc = pages.find(eq("_id", urlHash)).first();
                     System.out.println(urlHash + " : " +  link);
-                    if(!(doc == null)){
+                    if(doc != null){
                         int incomingLinks = ((Number) doc.get("inLinks")).intValue() + 1;
 
                         pages.updateOne(eq("_id", urlHash), new Document("$set", new Document("inLinks", incomingLinks)));
@@ -365,6 +382,7 @@ public class RankProcessor {
 				Document obj = cursor.next();
 				pages.updateOne(eq("_id", obj.get("_id")), new Document("$set", new Document("rank", rank)));
 				pages.updateOne(eq("_id", obj.get("_id")), new Document("$set", new Document("currentRank", rank )));
+				pages.updateOne(eq("_id", obj.get("_id")), new Document("$set", new Document("inLinks", 0 )));
 			}
 		}finally {
 
@@ -399,6 +417,12 @@ public class RankProcessor {
 
 						String url = st.nextToken().replace("[", "").replace("]", "").replace(" ", "");
                         //System.out.println(url.toLowerCase());
+//						if(url.contains("/data/"))
+//						{
+//							String parts[] = url.split("data/");
+//				            url = parts[1];
+//						}
+						
                         int hash = url.hashCode();
                         //System.out.println(hash);
                         //System.out.print("url: " + url + " hash: " + url.hashCode() + " ");

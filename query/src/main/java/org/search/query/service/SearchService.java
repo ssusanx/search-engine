@@ -43,8 +43,8 @@ public class SearchService {
 	{
 		mongoClient = new MongoClient( "localhost" , 27017 );
 		database = mongoClient.getDatabase("local");
-		index = database.getCollection("index");
-		pages = database.getCollection("pages");
+		index = database.getCollection("term");
+		pages = database.getCollection("document");
 	}
 	
 	public List<SearchResult> find(String query)
@@ -53,11 +53,10 @@ public class SearchService {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		String[] terms = query.split(" ");
 		
-		
 		for(String term : terms)
 		{
 			
-			double tfIdf = calculateTfIdf(1.0/ terms.length, calculateIdf(term));
+			//double tfIdf = calculateTfIdf(1.0/ terms.length, calculateIdf(term));
 			Document doc = index.find(eq("term", term)).first();
 			
 			System.out.println("find term " + term);
@@ -101,7 +100,7 @@ public class SearchService {
 		
 		for(SearchResult r : results)
 		{
-			r.setSimilarity(sim(d, q));
+			//r.setSimilarity(sim(d, q));
 		}
 		
 		weight(results);
@@ -115,10 +114,9 @@ public class SearchService {
 	{
 		for(SearchResult res : docs )
 		{
-			double weightedTfIdf = res.getTfidf() * (double)0.3;
-			double weightedSim = res.getTfidf() * (double)0.5;
-			double weightedLink = res.getLinkAnalysis() * (double)0.2;
-			double total = weightedTfIdf + weightedLink + weightedSim;
+			double weightedTfIdf = res.getTfidf() * (double)0.1;
+			double weightedLink = res.getLinkAnalysis() * (double)0.9;
+			double total = weightedTfIdf + weightedLink ;
 			res.setTfidf(weightedTfIdf);
 			res.setLinkAnalysis(weightedLink);
 			
@@ -126,6 +124,7 @@ public class SearchService {
 //			System.out.println("tfidf" + res.getTfidf());
 //			System.out.println("linkAnalysis" + res.getLinkAnalysis());
 //			System.out.println("score: " + total);
+			
 			res.setScore(total);
 		}
 		
